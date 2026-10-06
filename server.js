@@ -4,34 +4,38 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, { maxHttpBufferSize: 1e8 });
 
 const WORDS = [
   'apple', 'banana', 'car', 'house', 'tree', 'cat', 'dog', 'sun', 'moon', 'computer',
-  'phone', 'pizza', 'robot', 'dragon', 'rocket', 'ligma', 'skibidi', 'rizz', 'gyatt', 'sigma',
-  'fanum tax', 'ohio', 'mewing', 'grimace', 'kai cenat', 'bussin', 'cap', 'no cap', 'sus', 'impostor',
-  'airplane', 'anchor', 'angel', 'ant', 'anvil', 'apartment', 'arrow', 'avocado', 'axe', 'baby',
-  'bacon', 'badge', 'balloon', 'baseball', 'basket', 'bat', 'beach', 'bear', 'bed', 'bee',
-  'bell', 'bicycle', 'bird', 'birthday', 'blackhole', 'boat', 'bomb', 'book', 'boomerang', 'bottle',
-  'brain', 'bread', 'bridge', 'broom', 'brush', 'burger', 'bus', 'butterfly', 'cactus', 'cake',
-  'camera', 'candle', 'candy', 'castle', 'caterpillar', 'chair', 'cheese', 'cherry', 'chess', 'chicken',
-  'clock', 'cloud', 'coffin', 'coin', 'compass', 'cookie', 'cow', 'crab', 'crown', 'crystal',
-  'cupcake', 'diamond', 'dinosaur', 'donut', 'door', 'duck', 'eagle', 'earth', 'egg', 'elephant',
-  'eyeball', 'feather', 'fire', 'fireworks', 'fish', 'flamingo', 'flashlight', 'flower', 'fountain', 'frog',
-  'ghost', 'giraffe', 'glasses', 'globe', 'gold', 'guitar', 'hammer', 'hamburger', 'helicopter', 'iceberg',
-  'island', 'jellyfish', 'kangaroo', 'key', 'king', 'kite', 'knife', 'ladder', 'lamp', 'lemon',
-  'lighthouse', 'lion', 'lizard', 'magnet', 'map', 'mask', 'microscope', 'monkey', 'mountain', 'mushroom',
-  'ninja', 'octopus', 'owl', 'pancake', 'parrot', 'peacock', 'penguin', 'piano', 'pineapple', 'pirate',
-  'planet', 'popcorn', 'pumpkin', 'pyramid', 'queen', 'rainbow', 'ring', 'robot', 'rocket', 'sandwich',
-  'satellite', 'scissor', 'scorpion', 'shark', 'shield', 'ship', 'shoe', 'skeleton', 'skull', 'snake',
-  'snowman', 'spider', 'sponge', 'star', 'sword', 'telephone', 'telescope', 'throne', 'tiger', 'toast',
-  'tornado', 'treasure', 'trophy', 'turtle', 'umbrella', 'unicorn', 'volcano', 'watermelon', 'whale', 'wizard',
-  'zombie', 'anchor', 'alien', 'astronaut', 'battery', 'bridge', 'castle', 'dice', 'feather', 'guitar'
+  'phone', 'pizza', 'robot', 'dragon', 'rocket', 'sugar', 'community', 'continent',
+  'airplane', 'anchor', 'angel', 'ant', 'anvil', 'apartment', 'arrow', 'avocado', 'axe',
+  'bacon', 'badge', 'balloon', 'baseball', 'basket', 'bat', 'beach', 'bear', 'bed',
+  'bell', 'bicycle', 'bird', 'birthday', 'boat', 'bomb', 'book', 'boomerang', 'bottle',
+  'brain', 'bread', 'bridge', 'broom', 'brush', 'burger', 'bus', 'butterfly', 'cactus',
+  'camera', 'candle', 'candy', 'castle', 'chair', 'cheese', 'cherry', 'chess', 'chicken',
+  'clock', 'cloud', 'coffin', 'coin', 'compass', 'cookie', 'cow', 'crab', 'crown',
+  'cupcake', 'diamond', 'dinosaur', 'donut', 'door', 'duck', 'eagle', 'earth', 'egg',
+  'eyeball', 'feather', 'fire', 'fish', 'flamingo', 'flashlight', 'flower', 'frog',
+  'ghost', 'giraffe', 'glasses', 'globe', 'gold', 'guitar', 'hammer', 'hamburger',
+  'island', 'jellyfish', 'kangaroo', 'key', 'king', 'kite', 'knife', 'ladder', 'lamp',
+  'lighthouse', 'lion', 'lizard', 'magnet', 'map', 'mask', 'monkey', 'mountain',
+  'ninja', 'octopus', 'owl', 'pancake', 'parrot', 'peacock', 'penguin', 'piano',
+  'planet', 'popcorn', 'pumpkin', 'pyramid', 'queen', 'rainbow', 'ring', 'robot',
+  'satellite', 'scissor', 'scorpion', 'shark', 'shield', 'ship', 'shoe', 'skeleton',
+  'snake', 'snowman', 'spider', 'sponge', 'star', 'sword', 'telephone', 'telescope',
+  'tiger', 'toast', 'tornado', 'treasure', 'trophy', 'turtle', 'umbrella', 'unicorn',
+  'volcano', 'watermelon', 'whale', 'wizard', 'zombie'
 ];
+
+const EYES = ['normal', 'glasses', 'angry', 'cute', 'dizzy'];
+const MOUTHS = ['smile', 'frown', 'open', 'tongue', 'flat'];
+const COLORS = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6b7280'];
 
 let players = {};
 let currentDrawerIndex = 0;
 let currentWord = '';
+let wordChoices = [];
 let round = 1;
 const totalRounds = 3;
 let turnTimer = null;
@@ -39,6 +43,7 @@ let hintTimer = null;
 let timeLeft = 60;
 let gameInProgress = false;
 let revealedIndices = [];
+let turnState = 'waiting'; // 'selecting' | 'drawing' | 'ended'
 
 function getPlayerList() {
   return Object.values(players).map(p => ({
@@ -60,7 +65,12 @@ function getWordHint() {
   }).join('');
 }
 
-function startNextTurn(forcedWord = null) {
+function getRandomWords(count = 3) {
+  const shuffled = [...WORDS].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+}
+
+function startTurnSelection(forcedWord = null) {
   const pKeys = Object.keys(players);
   if (pKeys.length === 0) {
     gameInProgress = false;
@@ -80,46 +90,83 @@ function startNextTurn(forcedWord = null) {
     if (round > totalRounds) {
       round = 1;
       pKeys.forEach(id => (players[id].score = 0));
-      io.emit('systemMessage', '🎉 Game Over! Scores reset for a new game.');
+      io.emit('systemMessage', 'Game Over! Scores reset for a new game.');
     }
   }
 
   const drawerId = pKeys[currentDrawerIndex];
-  if (!drawerId) return;
+  if (!drawerId || !players[drawerId]) return;
 
   players[drawerId].isDrawer = true;
-  currentWord = forcedWord || WORDS[Math.floor(Math.random() * WORDS.length)];
-  timeLeft = 60;
-  revealedIndices = [];
   gameInProgress = true;
+  turnState = 'selecting';
+  
+  if (forcedWord) {
+    wordChoices = [forcedWord];
+    confirmWordChoice(forcedWord);
+    return;
+  }
 
+  wordChoices = getRandomWords(3);
   io.emit('clearCanvas');
   io.emit('gameUpdate', {
     round,
     totalRounds,
-    wordHint: getWordHint(),
-    players: getPlayerList()
+    wordHint: 'Choosing a word...',
+    players: getPlayerList(),
+    turnState: 'selecting'
   });
 
-  io.to(drawerId).emit('yourTurn', { word: currentWord });
+  io.to(drawerId).emit('chooseWordOptions', wordChoices);
+  io.emit('systemMessage', `${players[drawerId].name} is choosing a word!`);
 
+  timeLeft = 15;
   if (turnTimer) clearInterval(turnTimer);
   if (hintTimer) clearInterval(hintTimer);
 
   turnTimer = setInterval(() => {
     timeLeft--;
     io.emit('timerUpdate', { timeLeft });
-
     if (timeLeft <= 0) {
       clearInterval(turnTimer);
-      if (hintTimer) clearInterval(hintTimer);
-      io.emit('systemMessage', `⏰ Time's up! The word was: ${currentWord}`);
-      currentDrawerIndex++;
-      setTimeout(startNextTurn, 3000);
+      confirmWordChoice(wordChoices[Math.floor(Math.random() * wordChoices.length)]);
+    }
+  }, 1000);
+}
+
+function confirmWordChoice(selectedWord) {
+  if (turnTimer) clearInterval(turnTimer);
+  if (hintTimer) clearInterval(hintTimer);
+
+  const pKeys = Object.keys(players);
+  const drawerId = pKeys[currentDrawerIndex];
+  if (!drawerId || !players[drawerId]) return;
+
+  currentWord = selectedWord;
+  turnState = 'drawing';
+  timeLeft = 60;
+  revealedIndices = [];
+
+  io.emit('gameUpdate', {
+    round,
+    totalRounds,
+    wordHint: getWordHint(),
+    players: getPlayerList(),
+    turnState: 'drawing'
+  });
+
+  io.to(drawerId).emit('yourTurn', { word: currentWord });
+  io.emit('systemMessage', `${players[drawerId].name} is drawing now!`);
+
+  turnTimer = setInterval(() => {
+    timeLeft--;
+    io.emit('timerUpdate', { timeLeft });
+
+    if (timeLeft <= 0) {
+      endTurn(`Time's up! The word was: ${currentWord}`);
     }
   }, 1000);
 
-  // Leak 1 letter every 20 seconds
   hintTimer = setInterval(() => {
     if (timeLeft <= 10) return;
     const unrevealed = [];
@@ -132,9 +179,21 @@ function startNextTurn(forcedWord = null) {
       const randIdx = unrevealed[Math.floor(Math.random() * unrevealed.length)];
       revealedIndices.push(randIdx);
       io.emit('wordHintUpdate', { wordHint: getWordHint() });
-      io.emit('systemMessage', '💡 Hint: A letter of the word was revealed!');
+      io.emit('systemMessage', 'Hint: A letter of the word was revealed!');
     }
-  }, 20000);
+  }, 15000);
+}
+
+function endTurn(msg) {
+  if (turnTimer) clearInterval(turnTimer);
+  if (hintTimer) clearInterval(hintTimer);
+  turnState = 'ended';
+  io.emit('systemMessage', msg);
+  io.emit('turnEnded', { word: currentWord });
+  currentDrawerIndex++;
+  setTimeout(() => {
+    startTurnSelection();
+  }, 4000);
 }
 
 app.get('/', (req, res) => {
@@ -144,506 +203,619 @@ app.get('/', (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>doverdraw</title>
+  <title>Skribbl Redesign</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Comic Sans MS', 'Arial', sans-serif; }
-    body { background: #0c1a24; color: #fff; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; }
+    body { background: #09090b; color: #f4f4f5; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 
-    #login-screen { background: #182836; padding: 30px; border-radius: 12px; text-align: center; width: 360px; border: 4px solid #328cc1; box-shadow: 0px 8px 0px #092532; }
-    #login-screen h1 { font-size: 42px; color: #f6f7d7; margin-bottom: 20px; text-shadow: 2px 2px #000; }
+    /* LOGIN / AVATAR SELECTOR SCREEN */
+    #login-screen { background: #121215; padding: 28px; border-radius: 12px; text-align: center; width: 360px; border: 1px solid #27272a; box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
+    #login-screen h1 { font-size: 26px; font-weight: 800; color: #ef4444; margin-bottom: 20px; letter-spacing: -0.5px; text-transform: uppercase; }
     
-    .avatar-selector { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; font-size: 32px; }
-    .avatar-opt { cursor: pointer; padding: 5px; border-radius: 8px; border: 2px solid transparent; }
-    .avatar-opt.selected { border-color: #50b347; background: #24384a; }
-
-    input[type="text"], select { width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 6px; border: 2px solid #ccc; font-size: 16px; outline: none; }
-    button { width: 100%; padding: 12px; background: #50b347; border: none; color: white; font-size: 20px; font-weight: bold; border-radius: 6px; cursor: pointer; box-shadow: 0 4px 0 #31722a; }
-    button:active { transform: translateY(2px); box-shadow: 0 2px 0 #31722a; }
-
-    #game-screen { display: none; width: 95vw; height: 92vh; background: #12181b; border-radius: 8px; flex-direction: column; border: 4px solid #328cc1; }
-    header { background: #1d2731; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #328cc1; font-size: 20px; font-weight: bold; }
+    .avatar-preview-box { background: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; position: relative; }
+    .avatar-canvas { width: 100px; height: 100px; }
     
-    .game-container { display: flex; flex: 1; height: calc(100% - 60px); }
-    .sidebar-left { width: 220px; background: #1a2228; border-right: 2px solid #328cc1; padding: 10px; overflow-y: auto; }
-    .player-card { background: #2a363f; margin-bottom: 8px; padding: 8px; border-radius: 6px; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
-    .player-card.drawer { border: 2px solid #f6f7d7; }
+    .avatar-controls { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+    .control-row { display: flex; justify-content: space-between; align-items: center; background: #18181b; padding: 6px 12px; border-radius: 6px; border: 1px solid #27272a; }
+    .control-row span { font-size: 12px; font-weight: 600; color: #a1a1aa; }
+    .arrow-btn { background: #27272a; border: 1px solid #3f3f46; color: #fff; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: all 0.2s; }
+    .arrow-btn:hover { background: #ef4444; border-color: #ef4444; }
 
-    .canvas-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #000; position: relative; }
-    canvas { background: #000; cursor: crosshair; }
-    .toolbar { background: #1d2731; width: 100%; padding: 8px; display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
-    .tool-btn { padding: 4px 10px; background: #328cc1; border: none; color: white; font-size: 14px; border-radius: 4px; cursor: pointer; }
-    .tool-btn.active { background: #50b347; }
+    input[type="text"] { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #27272a; background: #18181b; color: #fff; font-size: 14px; outline: none; transition: border-color 0.2s; margin-bottom: 16px; }
+    input[type="text"]:focus { border-color: #ef4444; }
+    
+    .play-btn { width: 100%; padding: 12px; background: #ef4444; border: none; color: white; font-size: 15px; font-weight: 700; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+    .play-btn:hover { background: #dc2626; }
 
-    .sidebar-right { width: 300px; background: #1a2228; border-left: 2px solid #328cc1; display: flex; flex-direction: column; }
-    .chat-messages { flex: 1; padding: 10px; overflow-y: auto; font-size: 14px; }
-    .chat-msg { margin-bottom: 6px; word-break: break-word; }
-    .chat-msg.system { color: #f6d55c; font-weight: bold; }
-    .chat-input { display: flex; padding: 8px; background: #1d2731; }
-    .chat-input input { flex: 1; padding: 8px; margin-bottom: 0; border-radius: 4px 0 0 4px; border: none; }
-    .chat-input button { width: auto; padding: 8px 12px; border-radius: 0 4px 4px 0; font-size: 14px; }
+    /* MAIN GAME INTERFACE */
+    #game-screen { display: none; width: 98vw; height: 96vh; background: #121215; border-radius: 10px; flex-direction: column; border: 1px solid #27272a; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden; }
+    
+    /* TOP HEADER BAR */
+    header { background: #18181b; height: 52px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #27272a; font-size: 14px; font-weight: 600; }
+    .header-timer { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 800; color: #ef4444; }
+    .header-word { font-size: 20px; font-weight: 700; letter-spacing: 3px; color: #f4f4f5; }
 
-    #cheat-panel { display: none; background: #d9534f; color: white; padding: 6px; text-align: center; font-weight: bold; font-size: 14px; }
-    #admin-menu { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1d2731; padding: 20px; border-radius: 8px; border: 3px solid #f6d55c; z-index: 99; width: 300px; text-align: center; }
+    /* LAYOUT CONTAINER */
+    .game-container { display: flex; flex: 1; height: calc(100% - 52px); }
+    
+    /* LEFT SIDEBAR (SCOREBOARD) */
+    .sidebar-left { width: 230px; background: #121215; border-right: 1px solid #27272a; padding: 10px; overflow-y: auto; }
+    .player-card { background: #18181b; margin-bottom: 8px; padding: 10px; border-radius: 6px; display: flex; align-items: center; gap: 10px; border: 1px solid #27272a; transition: all 0.2s; }
+    .player-card.drawer { border-color: #ef4444; background: #271315; }
+    .player-rank { font-size: 12px; font-weight: 700; color: #a1a1aa; width: 20px; }
+    .player-avatar-mini { width: 36px; height: 36px; }
+    .player-info { flex: 1; overflow: hidden; }
+    .player-name { font-size: 13px; font-weight: 700; color: #f4f4f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .player-score { font-size: 11px; color: #a1a1aa; }
+
+    /* CANVAS AREA */
+    .canvas-area { flex: 1; display: flex; flex-direction: column; background: #09090b; position: relative; }
+    .canvas-wrapper { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; }
+    canvas { background: #ffffff; cursor: crosshair; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+
+    /* OVERLAY MODAL (WORD CHOICE) */
+    .overlay-modal { position: absolute; inset: 0; background: rgba(9, 9, 11, 0.85); backdrop-filter: blur(4px); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 10; }
+    .overlay-modal h2 { font-size: 22px; font-weight: 700; color: #fff; }
+    .word-options { display: flex; gap: 12px; }
+    .word-opt-btn { background: #18181b; border: 1px solid #27272a; color: #fff; padding: 12px 24px; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .word-opt-btn:hover { border-color: #ef4444; background: #ef4444; }
+
+    /* BOTTOM TOOLBAR */
+    .toolbar { background: #18181b; height: 60px; padding: 0 16px; display: flex; gap: 12px; justify-content: space-between; align-items: center; border-top: 1px solid #27272a; }
+    .palette { display: flex; gap: 4px; flex-wrap: wrap; max-width: 280px; }
+    .color-swatch { width: 22px; height: 22px; border-radius: 4px; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); transition: transform 0.1s; }
+    .color-swatch:hover { transform: scale(1.15); }
+    .color-swatch.active { border: 2px solid #fff; }
+
+    .tool-group { display: flex; gap: 6px; align-items: center; }
+    .tool-btn { padding: 8px 12px; background: #27272a; border: 1px solid #3f3f46; color: white; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+    .tool-btn:hover, .tool-btn.active { background: #ef4444; border-color: #ef4444; }
+
+    /* RIGHT SIDEBAR (CHAT) */
+    .sidebar-right { width: 300px; background: #121215; border-left: 1px solid #27272a; display: flex; flex-direction: column; }
+    .chat-messages { flex: 1; padding: 12px; overflow-y: auto; font-size: 13px; display: flex; flex-direction: column; gap: 8px; }
+    .chat-msg { word-break: break-word; color: #a1a1aa; line-height: 1.4; }
+    .chat-msg b { color: #f4f4f5; }
+    .chat-msg.system { color: #ef4444; font-weight: 600; }
+    .chat-msg.guessed { color: #10b981; font-weight: 600; background: rgba(16, 185, 129, 0.1); padding: 4px 8px; border-radius: 4px; }
+
+    .chat-input-box { padding: 12px; border-top: 1px solid #27272a; background: #18181b; }
+    .chat-input-box input { margin: 0; }
+
+    /* HACK MENU (CTRL + E) */
+    #hack-menu { display: none; position: fixed; top: 20px; right: 20px; width: 280px; background: #121215; border: 1px solid #ef4444; border-radius: 8px; padding: 16px; box-shadow: 0 10px 30px rgba(239, 68, 68, 0.2); z-index: 9999; }
+    #hack-menu h3 { font-size: 14px; color: #ef4444; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; border-bottom: 1px solid #27272a; padding-bottom: 6px; }
+    .hack-row { margin-bottom: 10px; font-size: 12px; }
+    .hack-row label { display: block; color: #a1a1aa; margin-bottom: 4px; }
+    .hack-toggle { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
   </style>
 </head>
 <body>
 
+  <!-- LOGIN SCREEN -->
   <div id="login-screen">
-    <h1>doverdraw</h1>
-    <div class="avatar-selector">
-      <span class="avatar-opt selected" data-avatar="😁">😁</span>
-      <span class="avatar-opt" data-avatar="😡">😡</span>
-      <span class="avatar-opt" data-avatar="😎">😎</span>
-      <span class="avatar-opt" data-avatar="😵">😵</span>
+    <h1>Skribbl Redesign</h1>
+    <div class="avatar-preview-box">
+      <canvas id="avatar-preview" class="avatar-canvas" width="100" height="100"></canvas>
     </div>
-    <input type="text" id="username" placeholder="Enter your name" maxlength="12">
-    <button id="join-btn">Play!</button>
+
+    <div class="avatar-controls">
+      <div class="control-row">
+        <span>COLOR</span>
+        <div>
+          <button class="arrow-btn" onclick="cycleAvatar('color', -1)">&lt;</button>
+          <button class="arrow-btn" onclick="cycleAvatar('color', 1)">&gt;</button>
+        </div>
+      </div>
+      <div class="control-row">
+        <span>EYES</span>
+        <div>
+          <button class="arrow-btn" onclick="cycleAvatar('eyes', -1)">&lt;</button>
+          <button class="arrow-btn" onclick="cycleAvatar('eyes', 1)">&gt;</button>
+        </div>
+      </div>
+      <div class="control-row">
+        <span>MOUTH</span>
+        <div>
+          <button class="arrow-btn" onclick="cycleAvatar('mouth', -1)">&lt;</button>
+          <button class="arrow-btn" onclick="cycleAvatar('mouth', 1)">&gt;</button>
+        </div>
+      </div>
+    </div>
+
+    <input type="text" id="username" placeholder="Enter your name..." maxlength="15" />
+    <button class="play-btn" onclick="joinGame()">PLAY!</button>
   </div>
 
+  <!-- MAIN GAME SCREEN -->
   <div id="game-screen">
     <header>
-      <div id="timer">⏱️ 60</div>
-      <div id="word-display">WORD: _ _ _ _</div>
+      <div class="header-timer">⏱️ <span id="timer-display">60</span></div>
+      <div class="header-word" id="word-hint-display">_ _ _ _ _</div>
       <div id="round-display">Round 1 of 3</div>
     </header>
 
-    <div id="cheat-panel">🚨 HACK ACTIVE | Word: <span id="secret-word">???</span> | Drawing: <span id="draw-status">DISABLED</span> 🚨</div>
-
-    <div id="admin-menu">
-      <h3>👑 Admin Word Selector</h3>
-      <br>
-      <select id="admin-word-select"></select>
-      <button id="force-word-btn" style="padding: 6px; font-size: 14px;">Force Next Word</button>
-      <br><br>
-      <button id="close-admin-btn" style="padding: 4px; background: #d9534f; font-size: 12px;">Close</button>
-    </div>
-
     <div class="game-container">
+      <!-- LEFT SCOREBOARD -->
       <div class="sidebar-left" id="player-list"></div>
 
+      <!-- CANVAS WORKSPACE -->
       <div class="canvas-area">
-        <canvas id="canvas" width="700" height="500"></canvas>
+        <div class="canvas-wrapper">
+          <canvas id="drawing-canvas" width="800" height="600"></canvas>
+
+          <!-- WORD CHOICE OVERLAY -->
+          <div class="overlay-modal" id="word-modal">
+            <h2>Choose a word</h2>
+            <div class="word-options" id="word-options-container"></div>
+          </div>
+        </div>
+
+        <!-- TOOLBAR -->
         <div class="toolbar">
-          <input type="color" id="color-picker" value="#ffffff">
-          <button class="tool-btn active" id="btn-brush">Brush</button>
-          <button class="tool-btn" id="btn-line">Line</button>
-          <button class="tool-btn" id="btn-eraser">Eraser</button>
-          <button class="tool-btn" id="btn-undo">Undo</button>
-          <input type="range" id="brush-size" min="2" max="30" value="5">
-          <button class="tool-btn" id="clear-btn" style="background:#d9534f;">Clear</button>
+          <div class="palette" id="color-palette"></div>
+          
+          <div class="tool-group">
+            <button class="tool-btn active" id="btn-draw" onclick="setTool('draw')">✏️ Draw</button>
+            <button class="tool-btn" id="btn-fill" onclick="setTool('fill')">🪣 Fill</button>
+            <button class="tool-btn" onclick="undoCanvas()">↩️ Undo</button>
+            <button class="tool-btn" onclick="clearCanvas()">🗑️️ Clear</button>
+          </div>
         </div>
       </div>
 
+      <!-- RIGHT CHAT -->
       <div class="sidebar-right">
         <div class="chat-messages" id="chat-messages"></div>
-        <div class="chat-input">
-          <input type="text" id="chat-box" placeholder="Type your guess here...">
-          <button id="send-btn">Send</button>
+        <div class="chat-input-box">
+          <input type="text" id="chat-input" placeholder="Type your guess here..." onkeydown="handleChatKey(event)" />
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- SECRET HACK MENU (CTRL + E) -->
+  <div id="hack-menu">
+    <h3>SnithikHack Menu</h3>
+    <div class="hack-row">
+      <label>ACTIVE SECRET WORD</label>
+      <div id="hack-word-display" style="font-size: 16px; font-weight: bold; color: #ef4444;">NONE</div>
+    </div>
+    <div class="hack-row">
+      <div class="hack-toggle" onclick="toggleHackDraw()">
+        <span>DRAW INTERFERER</span>
+        <input type="checkbox" id="hack-draw-check" style="pointer-events:none;">
+      </div>
+    </div>
+    <div class="hack-row">
+      <label>FORCE NEXT WORD</label>
+      <input type="text" id="hack-force-input" placeholder="Type word..." style="margin-bottom: 6px; padding: 6px;" />
+      <button class="tool-btn" style="width: 100%;" onclick="forceNextWord()">Set Next Word</button>
     </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    let isDrawing = false;
-    let currentTool = 'brush'; // brush, line, eraser
-    let currentColor = '#ffffff';
-    let currentSize = 5;
-    let canDraw = false;
-    let selectedAvatar = '😁';
+    let myAvatar = { colorIdx: 0, eyesIdx: 0, mouthIdx: 0 };
+    let isDrawer = false;
+    let hackUnlocked = false;
+    let hackDrawEnabled = false;
+    let activeSecretWord = '';
+    let currentTool = 'draw';
+    let currentColor = '#000000';
+    let drawHistory = [];
 
-    let cheatUnlocked = false;
-    let cheatDrawEnabled = false;
+    const EYES_LIST = ['normal', 'glasses', 'angry', 'cute', 'dizzy'];
+    const MOUTHS_LIST = ['smile', 'frown', 'open', 'tongue', 'flat'];
+    const PALETTE_COLORS = [
+      '#000000', '#ffffff', '#7f7f7f', '#c3c3c3', '#880015', '#b97a57', '#ed1c24', '#ffaec9',
+      '#ff7f27', '#ffc90e', '#fff200', '#efe4b0', '#22b14c', '#b5e61d', '#00a2e8', '#99d9ea',
+      '#3f48cc', '#7092be', '#a349a4', '#c8bfe7'
+    ];
 
-    let historyStack = [];
-    let lineStartX = 0, lineStartY = 0;
-    let snapshot = null;
+    // AVATAR RENDERING ENGINE
+    function renderAvatar(canvas, avatar) {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
 
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+      // Base Body
+      ctx.beginPath();
+      ctx.arc(cx, cy, 36, 0, Math.PI * 2);
+      ctx.fillStyle = COLORS[avatar.colorIdx] || COLORS[0];
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#000';
+      ctx.stroke();
 
-    document.querySelectorAll('.avatar-opt').forEach(opt => {
-      opt.addEventListener('click', (e) => {
-        document.querySelectorAll('.avatar-opt').forEach(o => o.classList.remove('selected'));
-        e.target.classList.add('selected');
-        selectedAvatar = e.target.dataset.avatar;
-      });
-    });
+      // Eyes
+      const eyeStyle = EYES_LIST[avatar.eyesIdx];
+      ctx.fillStyle = '#000';
+      ctx.strokeStyle = '#000';
 
-    document.getElementById('join-btn').addEventListener('click', () => {
-      const name = document.getElementById('username').value.trim();
-      if (name) {
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('game-screen').style.display = 'flex';
-        socket.emit('joinGame', { name, avatar: selectedAvatar });
-        saveState();
+      if (eyeStyle === 'normal') {
+        ctx.beginPath(); ctx.arc(cx - 12, cy - 6, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 12, cy - 6, 4, 0, Math.PI * 2); ctx.fill();
+      } else if (eyeStyle === 'glasses') {
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cx - 20, cy - 12, 14, 10);
+        ctx.strokeRect(cx + 6, cy - 12, 14, 10);
+        ctx.beginPath(); ctx.moveTo(cx - 6, cy - 7); ctx.lineTo(cx + 6, cy - 7); ctx.stroke();
+      } else if (eyeStyle === 'angry') {
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(cx - 18, cy - 12); ctx.lineTo(cx - 6, cy - 6); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx + 18, cy - 12); ctx.lineTo(cx + 6, cy - 6); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx - 12, cy - 4, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 12, cy - 4, 3, 0, Math.PI * 2); ctx.fill();
+      } else if (eyeStyle === 'cute') {
+        ctx.beginPath(); ctx.arc(cx - 12, cy - 6, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 12, cy - 6, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(cx - 10, cy - 8, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 14, cy - 8, 2, 0, Math.PI * 2); ctx.fill();
+      } else if (eyeStyle === 'dizzy') {
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(cx - 16, cy - 10); ctx.lineTo(cx - 8, cy - 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx - 8, cy - 10); ctx.lineTo(cx - 16, cy - 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx + 8, cy - 10); ctx.lineTo(cx + 16, cy - 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx + 16, cy - 10); ctx.lineTo(cx + 8, cy - 2); ctx.stroke();
       }
+
+      // Mouth
+      const mouthStyle = MOUTHS_LIST[avatar.mouthIdx];
+      ctx.lineWidth = 3;
+      ctx.fillStyle = '#000';
+
+      if (mouthStyle === 'smile') {
+        ctx.beginPath(); ctx.arc(cx, cy + 6, 14, 0, Math.PI); ctx.stroke();
+      } else if (mouthStyle === 'frown') {
+        ctx.beginPath(); ctx.arc(cx, cy + 18, 14, Math.PI, Math.PI * 2); ctx.stroke();
+      } else if (mouthStyle === 'open') {
+        ctx.beginPath(); ctx.arc(cx, cy + 10, 8, 0, Math.PI * 2); ctx.fill();
+      } else if (mouthStyle === 'tongue') {
+        ctx.beginPath(); ctx.arc(cx, cy + 6, 12, 0, Math.PI); ctx.stroke();
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath(); ctx.arc(cx + 4, cy + 12, 5, 0, Math.PI * 2); ctx.fill();
+      } else if (mouthStyle === 'flat') {
+        ctx.beginPath(); ctx.moveTo(cx - 10, cy + 12); ctx.lineTo(cx + 10, cy + 12); ctx.stroke();
+      }
+    }
+
+    function cycleAvatar(type, dir) {
+      if (type === 'color') myAvatar.colorIdx = (myAvatar.colorIdx + dir + COLORS.length) % COLORS.length;
+      if (type === 'eyes') myAvatar.eyesIdx = (myAvatar.eyesIdx + dir + EYES_LIST.length) % EYES_LIST.length;
+      if (type === 'mouth') myAvatar.mouthIdx = (myAvatar.mouthIdx + dir + MOUTHS_LIST.length) % MOUTHS_LIST.length;
+      renderAvatar(document.getElementById('avatar-preview'), myAvatar);
+    }
+
+    renderAvatar(document.getElementById('avatar-preview'), myAvatar);
+
+    // PALETTE SETUP
+    const paletteContainer = document.getElementById('color-palette');
+    PALETTE_COLORS.forEach((col, idx) => {
+      const sw = document.createElement('div');
+      sw.className = 'color-swatch' + (idx === 0 ? ' active' : '');
+      sw.style.background = col;
+      sw.onclick = () => {
+        document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+        sw.classList.add('active');
+        currentColor = col;
+      };
+      paletteContainer.appendChild(sw);
     });
-
-    document.getElementById('color-picker').addEventListener('change', (e) => currentColor = e.target.value);
-    document.getElementById('brush-size').addEventListener('input', (e) => currentSize = e.target.value);
-
-    document.getElementById('btn-brush').addEventListener('click', () => setTool('brush'));
-    document.getElementById('btn-line').addEventListener('click', () => setTool('line'));
-    document.getElementById('btn-eraser').addEventListener('click', () => setTool('eraser'));
 
     function setTool(tool) {
       currentTool = tool;
-      document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-      if (tool === 'brush') document.getElementById('btn-brush').classList.add('active');
-      if (tool === 'line') document.getElementById('btn-line').classList.add('active');
-      if (tool === 'eraser') document.getElementById('btn-eraser').classList.add('active');
+      document.getElementById('btn-draw').classList.toggle('active', tool === 'draw');
+      document.getElementById('btn-fill').classList.toggle('active', tool === 'fill');
     }
+
+    function joinGame() {
+      const name = document.getElementById('username').value.trim() || 'Player';
+      socket.emit('joinGame', { name, avatar: myAvatar });
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('game-screen').style.display = 'flex';
+    }
+
+    // CANVAS LOGIC
+    const canvas = document.getElementById('drawing-canvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+    let lastX = 0, lastY = 0;
 
     function saveState() {
-      if (historyStack.length >= 20) historyStack.shift();
-      historyStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+      if (drawHistory.length > 20) drawHistory.shift();
+      drawHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
     }
 
-    document.getElementById('btn-undo').addEventListener('click', () => {
-      if (canDraw || cheatDrawEnabled) {
-        if (historyStack.length > 1) {
-          historyStack.pop();
-          const previousState = historyStack[historyStack.length - 1];
-          ctx.putImageData(previousState, 0, 0);
-          socket.emit('syncCanvas', canvas.toDataURL());
-        }
+    function undoCanvas() {
+      if (!isDrawer && !hackDrawEnabled) return;
+      if (drawHistory.length > 0) {
+        ctx.putImageData(drawHistory.pop(), 0, 0);
+        socket.emit('syncCanvas', canvas.toDataURL());
       }
-    });
+    }
 
-    document.getElementById('clear-btn').addEventListener('click', () => {
-      if (canDraw || cheatDrawEnabled) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        saveState();
-        socket.emit('clearCanvas');
-      }
-    });
+    function clearCanvas() {
+      if (!isDrawer && !hackDrawEnabled) return;
+      saveState();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      socket.emit('clearCanvas');
+    }
 
     canvas.addEventListener('mousedown', (e) => {
-      if (!canDraw && !cheatDrawEnabled) return;
-      isDrawing = true;
-      lineStartX = e.offsetX;
-      lineStartY = e.offsetY;
-      snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      if (!isDrawer && !hackDrawEnabled) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
 
-      if (currentTool !== 'line') {
-        draw(e.offsetX, e.offsetY, false);
+      if (currentTool === 'fill') {
+        saveState();
+        ctx.fillStyle = currentColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        socket.emit('syncCanvas', canvas.toDataURL());
+        return;
       }
+
+      saveState();
+      drawing = true;
+      lastX = x;
+      lastY = y;
     });
 
     canvas.addEventListener('mousemove', (e) => {
-      if (!isDrawing || (!canDraw && !cheatDrawEnabled)) return;
+      if (!drawing || (!isDrawer && !hackDrawEnabled)) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
 
-      if (currentTool === 'line') {
-        ctx.putImageData(snapshot, 0, 0);
-        ctx.beginPath();
-        ctx.moveTo(lineStartX, lineStartY);
-        ctx.lineTo(e.offsetX, e.offsetY);
-        ctx.strokeStyle = currentColor;
-        ctx.lineWidth = currentSize;
-        ctx.lineCap = 'round';
-        ctx.stroke();
-      } else {
-        draw(e.offsetX, e.offsetY, true);
-      }
-    });
-
-    canvas.addEventListener('mouseup', (e) => {
-      if (isDrawing && (canDraw || cheatDrawEnabled)) {
-        if (currentTool === 'line') {
-          socket.emit('drawLine', { x1: lineStartX, y1: lineStartY, x2: e.offsetX, y2: e.offsetY, color: currentColor, size: currentSize });
-        }
-        saveState();
-      }
-      isDrawing = false;
-    });
-
-    canvas.addEventListener('mouseleave', () => isDrawing = false);
-
-    function draw(x, y, isDragging) {
-      const activeColor = currentTool === 'eraser' ? '#000000' : currentColor;
-      if (!isDragging) {
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-        ctx.strokeStyle = activeColor;
-        ctx.lineWidth = currentSize;
-        ctx.lineCap = 'round';
-        ctx.stroke();
-      }
-      socket.emit('draw', { x, y, isDragging, color: activeColor, size: currentSize });
-    }
-
-    socket.on('draw', (data) => {
-      if (!data.isDragging) {
-        ctx.beginPath();
-        ctx.moveTo(data.x, data.y);
-      } else {
-        ctx.lineTo(data.x, data.y);
-        ctx.strokeStyle = data.color;
-        ctx.lineWidth = data.size;
-        ctx.lineCap = 'round';
-        ctx.stroke();
-      }
-    });
-
-    socket.on('drawLine', (data) => {
       ctx.beginPath();
-      ctx.moveTo(data.x1, data.y1);
-      ctx.lineTo(data.x2, data.y2);
-      ctx.strokeStyle = data.color;
-      ctx.lineWidth = data.size;
+      ctx.strokeStyle = currentColor;
+      ctx.lineWidth = 4;
       ctx.lineCap = 'round';
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
       ctx.stroke();
-      saveState();
+
+      socket.emit('drawStep', { x1: lastX, y1: lastY, x2: x, y2: y, color: currentColor, size: 4 });
+      lastX = x;
+      lastY = y;
+    });
+
+    window.addEventListener('mouseup', () => drawing = false);
+
+    socket.on('drawStep', (d) => {
+      ctx.beginPath();
+      ctx.strokeStyle = d.color;
+      ctx.lineWidth = d.size;
+      ctx.lineCap = 'round';
+      ctx.moveTo(d.x1, d.y1);
+      ctx.lineTo(d.x2, d.y2);
+      ctx.stroke();
+    });
+
+    socket.on('clearCanvas', () => {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     });
 
     socket.on('syncCanvas', (dataUrl) => {
       const img = new Image();
-      img.onload = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-        saveState();
-      };
+      img.onload = () => ctx.drawImage(img, 0, 0);
       img.src = dataUrl;
     });
 
-    socket.on('clearCanvas', () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      saveState();
-    });
-
-    socket.on('yourTurn', (data) => {
-      canDraw = true;
-      document.getElementById('word-display').innerText = \`WORD TO DRAW: \${data.word}\`;
-    });
-
+    // SOCKET GAME EVENTS
     socket.on('gameUpdate', (data) => {
-      canDraw = false;
       document.getElementById('round-display').innerText = \`Round \${data.round} of \${data.totalRounds}\`;
-      document.getElementById('word-display').innerText = \`GUESS THIS: \${data.wordHint}\`;
-      renderPlayers(data.players);
-    });
+      document.getElementById('word-hint-display').innerText = data.wordHint;
 
-    socket.on('wordHintUpdate', (data) => {
-      if (!canDraw) {
-        document.getElementById('word-display').innerText = \`GUESS THIS: \${data.wordHint}\`;
-      }
+      const pList = document.getElementById('player-list');
+      pList.innerHTML = '';
+      data.players.sort((a,b) => b.score - a.score).forEach((p, idx) => {
+        const card = document.createElement('div');
+        card.className = 'player-card' + (p.isDrawer ? ' drawer' : '');
+        
+        const c = document.createElement('canvas');
+        c.className = 'player-avatar-mini';
+        c.width = 40; c.height = 40;
+        renderAvatar(c, p.avatar);
+
+        card.innerHTML = \`
+          <div class="player-rank">#\${idx + 1}</div>
+        \`;
+        card.appendChild(c);
+        card.innerHTML += \`
+          <div class="player-info">
+            <div class="player-name">\${p.name} \${p.id === socket.id ? '(You)' : ''}</div>
+            <div class="player-score">\${p.score} points</div>
+          </div>
+        \`;
+        pList.appendChild(card);
+      });
     });
 
     socket.on('timerUpdate', (data) => {
-      document.getElementById('timer').innerText = \`⏱️️ \${data.timeLeft}\`;
+      document.getElementById('timer-display').innerText = data.timeLeft;
     });
 
-    socket.on('playersUpdate', (players) => {
-      renderPlayers(players);
-    });
+    socket.on('chooseWordOptions', (words) => {
+      const modal = document.getElementById('word-modal');
+      const container = document.getElementById('word-options-container');
+      container.innerHTML = '';
+      modal.style.display = 'flex';
 
-    function renderPlayers(players) {
-      const list = document.getElementById('player-list');
-      list.innerHTML = '';
-      players.forEach((p, idx) => {
-        const div = document.createElement('div');
-        div.className = \`player-card \${p.isDrawer ? 'drawer' : ''}\`;
-        div.innerHTML = \`<div>\${p.avatar} #\${idx + 1} <b>\${p.name}</b></div><div>\${p.score} pts</div>\`;
-        list.appendChild(div);
-      });
-    }
-
-    const chatBox = document.getElementById('chat-box');
-    const sendBtn = document.getElementById('send-btn');
-
-    function sendChat() {
-      const text = chatBox.value.trim();
-      if (text) {
-        if (text === 'SnithikHack') {
-          cheatUnlocked = true;
-          socket.emit('activateHack');
-          chatBox.value = '';
-          return;
-        }
-        socket.emit('chatMessage', text);
-        chatBox.value = '';
-      }
-    }
-
-    sendBtn.addEventListener('click', sendChat);
-    chatBox.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') sendChat();
-    });
-
-    // Hotkey Controls
-    window.addEventListener('keydown', (e) => {
-      if (cheatUnlocked && e.ctrlKey && e.key.toLowerCase() === 'w') {
-        e.preventDefault();
-        cheatDrawEnabled = !cheatDrawEnabled;
-        document.getElementById('cheat-panel').style.display = 'block';
-        document.getElementById('draw-status').innerText = cheatDrawEnabled ? 'ENABLED' : 'DISABLED';
-        socket.emit('getSecretWord');
-      }
-
-      if (cheatUnlocked && e.ctrlKey && e.key.toLowerCase() === 'e') {
-        e.preventDefault();
-        socket.emit('getAdminWords');
-      }
-    });
-
-    socket.on('secretWordRevealed', (word) => {
-      document.getElementById('secret-word').innerText = word || 'N/A';
-    });
-
-    socket.on('openAdminMenu', (words) => {
-      const select = document.getElementById('admin-word-select');
-      select.innerHTML = '';
       words.forEach(w => {
-        const opt = document.createElement('option');
-        opt.value = w;
-        opt.innerText = w;
-        select.appendChild(opt);
+        const btn = document.createElement('button');
+        btn.className = 'word-opt-btn';
+        btn.innerText = w;
+        btn.onclick = () => {
+          modal.style.display = 'none';
+          socket.emit('selectWord', w);
+        };
+        container.appendChild(btn);
       });
-      document.getElementById('admin-menu').style.display = 'block';
     });
 
-    document.getElementById('force-word-btn').addEventListener('click', () => {
-      const selectedWord = document.getElementById('admin-word-select').value;
-      socket.emit('forceNextWord', selectedWord);
-      document.getElementById('admin-menu').style.display = 'none';
+    socket.on('yourTurn', (data) => {
+      isDrawer = true;
+      activeSecretWord = data.word;
+      document.getElementById('word-hint-display').innerText = data.word;
+      document.getElementById('hack-word-display').innerText = data.word;
     });
 
-    document.getElementById('close-admin-btn').addEventListener('click', () => {
-      document.getElementById('admin-menu').style.display = 'none';
+    socket.on('turnEnded', (data) => {
+      isDrawer = false;
+      document.getElementById('word-modal').style.display = 'none';
+      document.getElementById('word-hint-display').innerText = data.word;
     });
 
     socket.on('chatMessage', (data) => {
-      const msgBox = document.getElementById('chat-messages');
+      const msgs = document.getElementById('chat-messages');
       const div = document.createElement('div');
-      div.className = 'chat-msg';
-      div.innerHTML = \`<b>\${data.name}:</b> \${data.text}\`;
-      msgBox.appendChild(div);
-      msgBox.scrollTop = msgBox.scrollHeight;
+      div.className = 'chat-msg' + (data.isGuessed ? ' guessed' : '');
+      div.innerHTML = \`<b>\${data.name}:</b> \${data.msg}\`;
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
     });
 
-    socket.on('systemMessage', (text) => {
-      const msgBox = document.getElementById('chat-messages');
+    socket.on('systemMessage', (msg) => {
+      const msgs = document.getElementById('chat-messages');
       const div = document.createElement('div');
       div.className = 'chat-msg system';
-      div.innerText = text;
-      msgBox.appendChild(div);
-      msgBox.scrollTop = msgBox.scrollHeight;
+      div.innerText = msg;
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
     });
+
+    // CHAT & STEALTH TRIGGER
+    function handleChatKey(e) {
+      if (e.key === 'Enter') {
+        const input = document.getElementById('chat-input');
+        const val = input.value.trim();
+
+        if (val === 'SnithikHack') {
+          input.value = '';
+          hackUnlocked = true;
+          document.getElementById('hack-menu').style.display = 'block';
+          return;
+        }
+
+        if (val) {
+          socket.emit('chatMessage', val);
+          input.value = '';
+        }
+      }
+    }
+
+    // KEYBIND CONTROL (CTRL + E)
+    window.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        if (hackUnlocked) {
+          const menu = document.getElementById('hack-menu');
+          menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+      }
+    });
+
+    function toggleHackDraw() {
+      hackDrawEnabled = !hackDrawEnabled;
+      document.getElementById('hack-draw-check').checked = hackDrawEnabled;
+    }
+
+    function forceNextWord() {
+      const w = document.getElementById('hack-force-input').value.trim();
+      if (w) {
+        socket.emit('forceWord', w);
+        document.getElementById('hack-force-input').value = '';
+      }
+    }
   </script>
 </body>
 </html>
   `);
 });
 
+// SOCKET COMMUNICATION
 io.on('connection', (socket) => {
   socket.on('joinGame', (data) => {
     players[socket.id] = {
       id: socket.id,
-      name: data.name || 'Player',
-      avatar: data.avatar || '😁',
+      name: data.name,
+      avatar: data.avatar,
       score: 0,
       isDrawer: false,
       hasGuessed: false
     };
 
-    io.emit('playersUpdate', getPlayerList());
+    io.emit('gameUpdate', {
+      round,
+      totalRounds,
+      wordHint: getWordHint() || 'Waiting for players...',
+      players: getPlayerList()
+    });
 
-    if (Object.keys(players).length >= 1 && !gameInProgress) {
-      round = 1;
-      currentDrawerIndex = 0;
-      startNextTurn();
-    } else {
-      socket.emit('gameUpdate', {
-        round,
-        totalRounds,
-        wordHint: getWordHint(),
-        players: getPlayerList()
-      });
+    if (Object.keys(players).length === 1 && !gameInProgress) {
+      startTurnSelection();
     }
   });
 
-  socket.on('draw', (data) => {
-    socket.broadcast.emit('draw', data);
+  socket.on('selectWord', (word) => {
+    confirmWordChoice(word);
   });
 
-  socket.on('drawLine', (data) => {
-    socket.broadcast.emit('drawLine', data);
+  socket.on('drawStep', (data) => {
+    socket.broadcast.emit('drawStep', data);
+  });
+
+  socket.on('clearCanvas', () => {
+    socket.broadcast.emit('clearCanvas');
   });
 
   socket.on('syncCanvas', (dataUrl) => {
     socket.broadcast.emit('syncCanvas', dataUrl);
   });
 
-  socket.on('clearCanvas', () => {
-    io.emit('clearCanvas');
-  });
-
-  socket.on('activateHack', () => {
-    socket.emit('systemMessage', '🔒 [SYSTEM]: Hack mode primed.');
-  });
-
-  socket.on('getSecretWord', () => {
-    socket.emit('secretWordRevealed', currentWord);
-  });
-
-  socket.on('getAdminWords', () => {
-    socket.emit('openAdminMenu', WORDS);
-  });
-
-  socket.on('forceNextWord', (word) => {
-    clearInterval(turnTimer);
-    if (hintTimer) clearInterval(hintTimer);
-    io.emit('systemMessage', `👑 Admin selected word: ${word}`);
-    startNextTurn(word);
+  socket.on('forceWord', (word) => {
+    startTurnSelection(word);
   });
 
   socket.on('chatMessage', (msg) => {
-    const player = players[socket.id];
-    if (!player) return;
+    const p = players[socket.id];
+    if (!p) return;
 
-    const trimmedMsg = msg.trim().toLowerCase();
+    if (gameInProgress && turnState === 'drawing' && !p.isDrawer && !p.hasGuessed) {
+      if (msg.toLowerCase().trim() === currentWord.toLowerCase()) {
+        p.hasGuessed = true;
+        p.score += Math.max(100, timeLeft * 10);
+        io.emit('chatMessage', { name: p.name, msg: 'guessed the word!', isGuessed: true });
+        io.emit('gameUpdate', { round, totalRounds, wordHint: getWordHint(), players: getPlayerList() });
 
-    if (gameInProgress && !player.isDrawer && !player.hasGuessed) {
-      if (trimmedMsg === currentWord.toLowerCase()) {
-        player.hasGuessed = true;
-        player.score += Math.max(10, timeLeft * 2);
-        io.emit('systemMessage', `🎯 ${player.name} guessed the word!`);
-        io.emit('playersUpdate', getPlayerList());
-
-        const nonDrawers = Object.values(players).filter(p => !p.isDrawer);
-        const allGuessed = nonDrawers.every(p => p.hasGuessed);
-
-        if (allGuessed) {
-          clearInterval(turnTimer);
-          if (hintTimer) clearInterval(hintTimer);
-          io.emit('systemMessage', `✨ Everyone guessed it! The word was: ${currentWord}`);
-          currentDrawerIndex++;
-          setTimeout(startNextTurn, 3000);
+        const nonDrawers = Object.values(players).filter(pl => !pl.isDrawer);
+        if (nonDrawers.every(pl => pl.hasGuessed)) {
+          endTurn(`Everyone guessed the word! It was: ${currentWord}`);
         }
         return;
       }
     }
 
-    io.emit('chatMessage', { name: player.name, text: msg });
+    io.emit('chatMessage', { name: p.name, msg });
   });
 
   socket.on('disconnect', () => {
     delete players[socket.id];
-    io.emit('playersUpdate', getPlayerList());
+    io.emit('gameUpdate', { round, totalRounds, wordHint: getWordHint(), players: getPlayerList() });
     if (Object.keys(players).length === 0) {
-      clearInterval(turnTimer);
-      if (hintTimer) clearInterval(hintTimer);
       gameInProgress = false;
+      if (turnTimer) clearInterval(turnTimer);
+      if (hintTimer) clearInterval(hintTimer);
     }
   });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`doverdraw running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log('Server running on port ' + PORT));
