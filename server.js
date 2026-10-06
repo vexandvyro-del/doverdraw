@@ -1,10 +1,14 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { maxHttpBufferSize: 1e8 });
+
+// Serve static frontend files from 'public' folder
+app.use(express.static(path.join(__dirname, 'public')));
 
 const WORDS = [
   'apple', 'banana', 'car', 'house', 'tree', 'cat', 'dog', 'sun', 'moon', 'computer',
@@ -95,3 +99,178 @@ function startTurnSelection(forcedWord = null) {
 
   players[drawerId].isDrawer = true;
   gameInProgress = true;
+  turnState = 'selecting';
+
+  if (forcedWord) {
+    wordChoices = [forcedWord];
+    confirmWordChoice(forcedWord);
+    return;
+  }
+
+  wordChoices = getRandomWords(3);
+  io.emit('clearCanvas');
+  io.emit('gameUpdate', {
+    round,
+    totalRounds,
+    wordHint: 'Choosing a word...',
+    players: getPlayerList(),
+    turnState: 'selecting'
+  });
+
+  io.to(drawerId).emit('chooseWordOptions', wordChoices);
+  io.emit('systemMessage', players[drawerId].name + ' is choosing a word!');
+
+  timeLeft = 15;
+  if (turnTimer) clearInterval(turnTimer);
+  if (hintTimer) clearInterval(hintTimer);
+
+  turnTimer = setInterval(() => {
+    timeLeft--;
+    io.emit('timerUpdate', { timeLeft });
+    if (timeLeft <= 0) {
+      clearInterval(turnTimer);
+      confirmWordChoice(wordChoices[Math.floor(Math.random() * wordChoices.length)]);
+    }
+  }, 1000);
+}
+
+function confirmWordChoice(selectedWord) {
+  if (turnTimer) clearInterval(turnTimer);
+  if (hintTimer) clearInterval(hintTimer);
+
+  const pKeys = Object.keys(players);
+  const drawerId = pKeys[currentDrawerIndex];
+  if (!drawerId || !players[drawerId]) return;
+
+  currentWord = selectedWord;
+  turnState = 'drawing';
+  timeLeft = 60;
+  revealedIndices = [];
+
+  io.emit('gameUpdate', {
+    round,
+    totalRounds,
+    wordHint: getWordHint(),
+    players: getPlayerList(),
+    turnState: 'drawing'
+  });
+
+  io.to(drawerId).emit('yourTurn', { word: currentWord });
+  io.emit('systemMessage', players[drawerId].name + ' is drawing now!');
+
+  turnTimer = setInterval(() => {
+    timeLeft--;
+    io.emit('timerUpdate', { timeLeft });
+
+    if (timeLeft <= 0) {
+      endTurn("Time's up! The word was: " + currentWord);
+    }
+  }, 1000);
+
+  hintTimer = setInterval(() => {
+    if (timeLeft <= 10) return;
+    const unrevealed = [];
+    for (let i = 0; i < currentWord.length; i++) {
+      if (currentWord[i] !== ' ' && !revealedIndices.includes(i)) {
+        unrevealed.push(i);
+      }
+    }
+    if (unrevealed.length > 1) {
+      const randIdx = unrevealed[Math.floor(Math.random() * unrevealed.length)];
+      revealedIndices.push(randIdx);
+      io.emit('wordHintUpdate', { wordHint: getWordHint() });
+      io.emit('systemMessage', 'Hint: A letter of the word was revealed!');
+    }
+  }, 15000);
+}
+
+function endTurn(msg) {
+  if (turnTimer) clearInterval(turnTimer);
+  if (hintTimer) clearInterval(hintTimer);
+  turnState = 'ended';
+  io.emit('systemMessage', msg);
+  io.emit('turnEnded', { word: currentWord });
+  currentDrawerIndex++;
+  setTimeout(() => {
+    startTurnSelection();
+  }, 4000);
+}
+
+io.on('connection', (socket) => {
+  socket.on('joinGame', (data) => {
+    players[socket.id] = {
+      id: socket.id,
+      name: data.name,
+      avatar: data.avatar,
+      score: 0,
+      isDrawer: false,
+      hasGuessed: false
+    };
+
+    io.emit('gameUpdate', {
+      round,
+      totalRounds,
+      wordHint: getWordHint() || 'Waiting for players...',
+      players: getPlayerList()
+    });
+
+    if (Object.keys(players).length === 1 && !gameInProgress) {
+      startTurnSelection();
+    }
+  });
+
+  socket.on('selectWord', (word) => {
+    confirmWordChoice(word);
+  });
+
+  socket.on('drawStep', (data) => {
+    socket.broadcast.emit('drawStep', data);
+  });
+
+  socket.on('clearCanvas', () => {
+    socket.broadcast.emit('clearCanvas');
+  });
+
+  socket.on('syncCanvas', (dataUrl) => {
+    socket.broadcast.emit('syncCanvas', dataUrl);
+  });
+
+  socket.on('forceWord', (word) => {
+    startTurnSelection(word);
+  });
+
+  socket.on('chatMessage', (msg) => {
+    const p = players[socket.id];
+    if (!p) return;
+
+    if (gameInProgress && turnState === 'drawing' && !p.isDrawer && !p.hasGuessed) {
+      if (msg.toLowerCase().trim() === currentWord.toLowerCase()) {
+        p.hasGuessed = true;
+        p.score += Math.max(100, timeLeft * 10);
+        io.emit('chatMessage', { name: p.name, msg: 'guessed the word!', isGuessed: true });
+        io.emit('gameUpdate', { round, totalRounds, wordHint: getWordHint(), players: getPlayerList() });
+
+        const nonDrawers = Object.values(players).filter(pl => !pl.isDrawer);
+        if (nonDrawers.every(pl => pl.hasGuessed)) {
+          endTurn('Everyone guessed the word! It was: ' + currentWord);
+        }
+        return;
+      }
+    }
+
+    io.emit('chatMessage', { name: p.name, msg });
+  });
+
+  socket.on('disconnect', () => {
+    delete players[socket.id];
+    io.emit('gameUpdate', { round, totalRounds, wordHint: getWordHint(), players: getPlayerList() });
+    if (Object.keys(players).length === 0) {
+      gameInProgress = false;
+      if (turnTimer) clearInterval(turnTimer);
+      if (hintTimer) clearInterval(hintTimer);
+    }
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log('Server running on port ' + PORT));
