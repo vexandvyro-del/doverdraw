@@ -2,16 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>skribbl.io</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>doverdraw</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; user-select: none; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; user-select: none; touch-action: manipulation; }
     body { background: #1852b4; color: #000; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 
-    #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; background: #1852b4; }
-    .logo-container { font-size: 56px; font-weight: 900; color: #fff; font-family: 'Comic Sans MS', cursive, sans-serif; text-shadow: 3px 3px 0px #000; margin-bottom: 20px; }
+    #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; background: #1852b4; padding: 10px; }
+    .logo-container { font-size: clamp(36px, 8vw, 56px); font-weight: 900; color: #fff; font-family: 'Comic Sans MS', cursive, sans-serif; text-shadow: 3px 3px 0px #000; margin-bottom: 20px; text-align: center; }
     
-    .login-card { background: #0c2b64; padding: 20px; border-radius: 8px; width: 380px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 8px 0 rgba(0,0,0,0.3); }
+    .login-card { background: #0c2b64; padding: 20px; border-radius: 8px; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 8px 0 rgba(0,0,0,0.3); }
     .input-row { display: flex; gap: 8px; }
     input[type="text"] { flex: 1; padding: 10px 14px; border-radius: 4px; border: none; font-size: 16px; font-weight: bold; outline: none; }
 
@@ -20,67 +20,101 @@
     
     .arrow-controls { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 10px; pointer-events: none; }
     .arrow-row { display: flex; justify-content: space-between; pointer-events: auto; }
-    .arrow-btn { background: #fff; border: 2px solid #000; border-radius: 4px; font-weight: bold; width: 26px; height: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+    .arrow-btn { background: #fff; border: 2px solid #000; border-radius: 4px; font-weight: bold; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; }
     .arrow-btn:hover { background: #ddd; }
 
     .btn-play { background: #53d400; color: #fff; border: none; padding: 14px; font-size: 26px; font-weight: 900; border-radius: 6px; cursor: pointer; text-shadow: 2px 2px 0px #000; box-shadow: 0 4px 0 #3a9600; text-align: center; }
     .btn-play:hover { background: #47b800; }
 
-    #game-screen { display: none; width: 1000px; height: 620px; background: #fff; border-radius: 6px; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden; border: 3px solid #0c2b64; }
+    #game-screen { display: none; width: 100%; max-width: 1000px; height: 100vh; max-height: 620px; background: #fff; border-radius: 6px; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden; border: 3px solid #0c2b64; }
     
-    header { background: #fff; height: 48px; padding: 0 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ccc; font-size: 16px; font-weight: bold; }
-    .timer-box { font-size: 22px; font-weight: 900; display: flex; align-items: center; gap: 6px; }
-    .word-box { font-size: 24px; font-weight: 900; letter-spacing: 4px; }
+    header { background: #fff; height: 48px; padding: 0 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ccc; font-size: 14px; font-weight: bold; flex-shrink: 0; }
+    .timer-box { font-size: 20px; font-weight: 900; display: flex; align-items: center; gap: 4px; }
+    .word-box { font-size: clamp(16px, 4vw, 24px); font-weight: 900; letter-spacing: 3px; text-align: center; overflow: hidden; white-space: nowrap; }
 
-    .game-body { display: flex; flex: 1; height: calc(100% - 48px); }
+    .game-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
     
-    .sidebar-left { width: 180px; background: #eee; border-right: 2px solid #ccc; padding: 6px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+    .sidebar-left { width: 180px; background: #eee; border-right: 2px solid #ccc; padding: 6px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
     .player-card { background: #fff; border: 2px solid #ccc; border-radius: 4px; padding: 6px; display: flex; align-items: center; gap: 8px; font-size: 12px; }
     .player-card.drawer { border-color: #53d400; background: #eaffd9; }
-    .player-rank { font-weight: bold; color: #555; width: 20px; }
+    .player-rank { font-weight: bold; color: #555; width: 18px; }
     .player-info { overflow: hidden; flex: 1; }
     .player-name { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .player-score { color: #666; font-size: 11px; }
 
-    .canvas-area { flex: 1; display: flex; flex-direction: column; background: #5a5e73; position: relative; }
-    .canvas-wrapper { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; }
-    canvas { background: #ffffff; cursor: crosshair; }
+    .canvas-area { flex: 1; display: flex; flex-direction: column; background: #5a5e73; position: relative; min-width: 0; min-height: 0; }
+    .canvas-wrapper { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #5a5e73; }
+    canvas { background: #ffffff; cursor: crosshair; touch-action: none; max-width: 100%; max-height: 100%; object-fit: contain; }
 
-    .overlay-modal { position: absolute; inset: 0; background: rgba(90, 94, 115, 0.95); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 10; }
-    .overlay-modal h2 { color: #fff; font-size: 26px; }
-    .word-options { display: flex; gap: 12px; }
-    .word-opt-btn { background: #fff; border: 2px solid #000; color: #000; padding: 10px 20px; border-radius: 4px; font-size: 18px; font-weight: bold; cursor: pointer; }
+    .overlay-modal { position: absolute; inset: 0; background: rgba(90, 94, 115, 0.95); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 10; padding: 10px; }
+    .overlay-modal h2 { color: #fff; font-size: 22px; text-align: center; }
+    .word-options { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .word-opt-btn { background: #fff; border: 2px solid #000; color: #000; padding: 10px 16px; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; }
     .word-opt-btn:hover { background: #eee; }
 
-    .toolbar { background: #1852b4; height: 54px; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #0c2b64; }
-    .palette { display: flex; gap: 2px; flex-wrap: wrap; width: 230px; }
-    .color-swatch { width: 20px; height: 20px; border: 1px solid #000; cursor: pointer; }
+    /* Fixed Toolbar & Swatches overflow */
+    .toolbar { background: #1852b4; min-height: 54px; padding: 4px 8px; display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #0c2b64; flex-shrink: 0; gap: 6px; overflow: hidden; }
+    .palette { display: flex; gap: 3px; align-items: center; flex-wrap: wrap; max-width: 65%; max-height: 46px; overflow: hidden; }
+    .color-swatch { width: 18px; height: 18px; border: 1px solid #000; cursor: pointer; border-radius: 2px; flex-shrink: 0; }
     .color-swatch.active { outline: 2px solid #fff; z-index: 2; }
+    
+    input[type="color"] { -webkit-appearance: none; border: 1px solid #000; width: 22px; height: 22px; border-radius: 3px; cursor: pointer; padding: 0; background: none; flex-shrink: 0; }
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type="color"]::-webkit-color-swatch { border: none; border-radius: 2px; }
 
-    .tool-group { display: flex; gap: 6px; align-items: center; }
-    .tool-btn { width: 34px; height: 34px; background: #fff; border: 2px solid #000; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+    .tool-group { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+    .tool-btn { width: 30px; height: 30px; background: #fff; border: 2px solid #000; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; display: flex; align-items: center; justify-content: center; }
     .tool-btn.active { background: #ddd; }
 
-    .sidebar-right { width: 240px; background: #fff; border-left: 2px solid #ccc; display: flex; flex-direction: column; }
-    .chat-messages { flex: 1; padding: 10px; overflow-y: auto; font-size: 13px; display: flex; flex-direction: column; gap: 6px; }
-    .chat-msg { word-break: break-word; color: #333; }
+    .sidebar-right { width: 220px; background: #fff; border-left: 2px solid #ccc; display: flex; flex-direction: column; flex-shrink: 0; }
+    .chat-messages { flex: 1; padding: 8px; overflow-y: auto; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+    
+    .chat-msg { word-break: break-word; color: #333; padding: 3px 5px; border-radius: 3px; transition: transform 0.2s; }
     .chat-msg b { color: #000; }
-    .chat-msg.system { color: #1852b4; font-weight: bold; }
-    .chat-msg.guessed { color: #3a9600; font-weight: bold; background: #eaffd9; padding: 4px; border-radius: 3px; }
+    .chat-msg.system { color: #1852b4; font-weight: bold; background: #eef4ff; }
+    .chat-msg.correct { color: #2e7d32; font-weight: bold; background: #e8f5e9; animation: popGreen 0.3s ease-in-out; }
+    .chat-msg.close { color: #d84315; font-weight: bold; background: #fbe9e7; animation: shakeRed 0.3s ease-in-out; }
+    .chat-msg.wrong { animation: shakeRed 0.25s ease-in-out; }
 
-    .chat-input-box { padding: 8px; border-top: 2px solid #ccc; }
-    .chat-input-box input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; outline: none; }
+    @keyframes shakeRed {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-3px); background-color: #ffebee; }
+      50% { transform: translateX(3px); background-color: #ffebee; }
+      75% { transform: translateX(-3px); }
+      100% { transform: translateX(0); }
+    }
 
-    #hack-menu { display: none; position: fixed; top: 20px; right: 20px; width: 260px; background: #111; color: #fff; border: 2px solid #53d400; border-radius: 6px; padding: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.8); z-index: 9999; }
-    #hack-menu h3 { font-size: 14px; color: #53d400; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 4px; }
-    .hack-row { margin-bottom: 8px; font-size: 12px; }
+    @keyframes popGreen {
+      0% { transform: scale(0.95); }
+      50% { transform: scale(1.03); }
+      100% { transform: scale(1); }
+    }
+
+    .chat-input-box { padding: 6px; border-top: 2px solid #ccc; }
+    .chat-input-box input { width: 100%; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; outline: none; font-size: 13px; }
+
+    #hack-menu { display: none; position: fixed; top: 20px; right: 20px; width: 240px; background: #111; color: #fff; border: 2px solid #53d400; border-radius: 6px; padding: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.8); z-index: 9999; }
+    #hack-menu h3 { font-size: 13px; color: #53d400; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+    .hack-row { margin-bottom: 6px; font-size: 12px; }
     .hack-row label { display: block; color: #aaa; margin-bottom: 2px; }
+
+    /* Mobile Responsive Layout Adjustments */
+    @media (max-width: 768px) {
+      body { align-items: flex-start; }
+      #game-screen { height: 100vh; max-height: 100vh; border-radius: 0; border: none; }
+      .game-body { flex-direction: column; }
+      .sidebar-left { width: 100%; height: 60px; border-right: none; border-bottom: 2px solid #ccc; flex-direction: row; overflow-x: auto; overflow-y: hidden; }
+      .player-card { min-width: 120px; }
+      .sidebar-right { width: 100%; height: 140px; border-left: none; border-top: 2px solid #ccc; }
+      .palette { max-width: 55%; }
+      .tool-btn { width: 26px; height: 26px; font-size: 11px; }
+    }
   </style>
 </head>
 <body>
 
   <div id="login-screen">
-    <div class="logo-container">skribbl.io</div>
+    <div class="logo-container">doverdraw</div>
     <div class="login-card">
       <div class="input-row">
         <input type="text" id="username" placeholder="Enter your name" maxlength="15" />
@@ -129,13 +163,18 @@
         </div>
 
         <div class="toolbar">
-          <div class="palette" id="color-palette"></div>
+          <div class="palette">
+            <div id="color-palette" style="display: flex; gap: 2px; flex-wrap: wrap;"></div>
+            <input type="color" id="custom-color-picker" value="#000000" onchange="setCustomColor(this.value)" title="Choose Custom Color">
+          </div>
           
           <div class="tool-group">
-            <button class="tool-btn active" id="btn-draw" onclick="setTool('draw')">✏️</button>
-            <button class="tool-btn" id="btn-fill" onclick="setTool('fill')">🪣</button>
-            <button class="tool-btn" onclick="undoCanvas()">↩️</button>
-            <button class="tool-btn" onclick="clearCanvas()">🗑</button>
+            <button class="tool-btn active" id="btn-draw" onclick="setTool('draw')" title="Brush">✏️</button>
+            <button class="tool-btn" id="btn-fill" onclick="setTool('fill')" title="Fill Bucket">🪣</button>
+            <button class="tool-btn" id="btn-erase" onclick="setTool('erase')" title="Eraser">🧹</button>
+            <button class="tool-btn" onclick="undoCanvas()" title="Undo">↩️</button>
+            <button class="tool-btn" onclick="clearCanvas()" title="Clear Canvas">🗑</button>
+            <button class="tool-btn" onclick="triggerHint()" title="Request Hint">💡</button>
           </div>
         </div>
       </div>
@@ -153,17 +192,12 @@
     <h3>SnithikHack Menu</h3>
     <div class="hack-row">
       <label>SECRET WORD:</label>
-      <div id="hack-word-display" style="font-size: 16px; font-weight: bold; color: #53d400;">NONE</div>
+      <div id="hack-word-display" style="font-size: 15px; font-weight: bold; color: #53d400;">NONE</div>
     </div>
     <div class="hack-row">
       <label style="cursor:pointer;">
         <input type="checkbox" id="hack-draw-check" onchange="toggleHackDraw()"> DRAW INTERFERER
       </label>
-    </div>
-    <div class="hack-row">
-      <label>FORCE NEXT WORD:</label>
-      <input type="text" id="hack-force-input" placeholder="Type word..." style="width:100%; margin-bottom: 4px; padding: 4px;" />
-      <button style="width: 100%; padding: 4px; cursor: pointer;" onclick="forceNextWord()">Set Word</button>
     </div>
   </div>
 
@@ -229,14 +263,27 @@
         document.querySelectorAll('.color-swatch').forEach(function(s) { s.classList.remove('active'); });
         sw.classList.add('active');
         currentColor = col;
+        document.getElementById('custom-color-picker').value = col;
+        if (currentTool === 'erase') setTool('draw');
       };
       paletteContainer.appendChild(sw);
     });
+
+    function setCustomColor(col) {
+      document.querySelectorAll('.color-swatch').forEach(function(s) { s.classList.remove('active'); });
+      currentColor = col;
+      if (currentTool === 'erase') setTool('draw');
+    }
 
     function setTool(tool) {
       currentTool = tool;
       document.getElementById('btn-draw').classList.toggle('active', tool === 'draw');
       document.getElementById('btn-fill').classList.toggle('active', tool === 'fill');
+      document.getElementById('btn-erase').classList.toggle('active', tool === 'erase');
+    }
+
+    function triggerHint() {
+      socket.emit('requestHint');
     }
 
     function joinGame() {
@@ -272,11 +319,21 @@
       socket.emit('clearCanvas');
     }
 
-    canvas.addEventListener('mousedown', function(e) {
-      if (!isDrawer && !hackDrawEnabled) return;
+    function getCanvasPos(e) {
       var rect = canvas.getBoundingClientRect();
-      var x = e.clientX - rect.left;
-      var y = e.clientY - rect.top;
+      var clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      var clientY = e.clientY || (e.touches && e.touches[0].clientY);
+      var scaleX = canvas.width / rect.width;
+      var scaleY = canvas.height / rect.height;
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+      };
+    }
+
+    function startDrawing(e) {
+      if (!isDrawer && !hackDrawEnabled) return;
+      var pos = getCanvasPos(e);
 
       if (currentTool === 'fill') {
         saveState();
@@ -288,30 +345,40 @@
 
       saveState();
       drawing = true;
-      lastX = x;
-      lastY = y;
-    });
+      lastX = pos.x;
+      lastY = pos.y;
+    }
 
-    canvas.addEventListener('mousemove', function(e) {
+    function drawMove(e) {
       if (!drawing || (!isDrawer && !hackDrawEnabled)) return;
-      var rect = canvas.getBoundingClientRect();
-      var x = e.clientX - rect.left;
-      var y = e.clientY - rect.top;
+      e.preventDefault();
+      var pos = getCanvasPos(e);
+
+      var drawColor = (currentTool === 'erase') ? '#ffffff' : currentColor;
+      var drawSize = (currentTool === 'erase') ? 20 : 4;
 
       ctx.beginPath();
-      ctx.strokeStyle = currentColor;
-      ctx.lineWidth = 4;
+      ctx.strokeStyle = drawColor;
+      ctx.lineWidth = drawSize;
       ctx.lineCap = 'round';
       ctx.moveTo(lastX, lastY);
-      ctx.lineTo(x, y);
+      ctx.lineTo(pos.x, pos.y);
       ctx.stroke();
 
-      socket.emit('drawStep', { x1: lastX, y1: lastY, x2: x, y2: y, color: currentColor, size: 4 });
-      lastX = x;
-      lastY = y;
-    });
+      socket.emit('drawStep', { x1: lastX, y1: lastY, x2: pos.x, y2: pos.y, color: drawColor, size: drawSize });
+      lastX = pos.x;
+      lastY = pos.y;
+    }
 
-    window.addEventListener('mouseup', function() { drawing = false; });
+    function stopDrawing() { drawing = false; }
+
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', drawMove);
+    window.addEventListener('mouseup', stopDrawing);
+
+    canvas.addEventListener('touchstart', function(e) { startDrawing(e); }, { passive: false });
+    canvas.addEventListener('touchmove', function(e) { drawMove(e); }, { passive: false });
+    window.addEventListener('touchend', stopDrawing);
 
     socket.on('drawStep', function(d) {
       ctx.beginPath();
@@ -345,8 +412,8 @@
         card.className = 'player-card' + (p.isDrawer ? ' drawer' : '');
         
         var avatarBox = document.createElement('div');
-        avatarBox.style.width = '30px';
-        avatarBox.style.height = '30px';
+        avatarBox.style.width = '26px';
+        avatarBox.style.height = '26px';
         avatarBox.innerHTML = getAvatarSVG(p.avatar);
 
         card.innerHTML = '<div class="player-rank">#' + (idx + 1) + '</div>';
@@ -357,6 +424,10 @@
           '</div>';
         pList.appendChild(card);
       });
+    });
+
+    socket.on('wordHintUpdate', function(data) {
+      document.getElementById('word-hint-display').innerText = data.wordHint;
     });
 
     socket.on('timerUpdate', function(data) {
@@ -397,7 +468,7 @@
     socket.on('chatMessage', function(data) {
       var msgs = document.getElementById('chat-messages');
       var div = document.createElement('div');
-      div.className = 'chat-msg' + (data.isGuessed ? ' guessed' : '');
+      div.className = 'chat-msg ' + (data.status || 'wrong');
       div.innerHTML = '<b>' + data.name + ':</b> ' + data.msg;
       msgs.appendChild(div);
       msgs.scrollTop = msgs.scrollHeight;
@@ -443,14 +514,6 @@
 
     function toggleHackDraw() {
       hackDrawEnabled = document.getElementById('hack-draw-check').checked;
-    }
-
-    function forceNextWord() {
-      var w = document.getElementById('hack-force-input').value.trim();
-      if (w) {
-        socket.emit('forceWord', w);
-        document.getElementById('hack-force-input').value = '';
-      }
     }
   </script>
 </body>
