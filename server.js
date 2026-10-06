@@ -7,9 +7,9 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { maxHttpBufferSize: 1e8 });
 
-// Serve static frontend files from 'public' folder
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 150+ Words List
 const WORDS = [
   'apple', 'banana', 'car', 'house', 'tree', 'cat', 'dog', 'sun', 'moon', 'computer',
   'phone', 'pizza', 'robot', 'dragon', 'rocket', 'sugar', 'community', 'continent',
@@ -29,7 +29,8 @@ const WORDS = [
   'satellite', 'scissor', 'scorpion', 'shark', 'shield', 'ship', 'shoe', 'skeleton',
   'snake', 'snowman', 'spider', 'sponge', 'star', 'sword', 'telephone', 'telescope',
   'tiger', 'toast', 'tornado', 'treasure', 'trophy', 'turtle', 'umbrella', 'unicorn',
-  'volcano', 'watermelon', 'whale', 'wizard', 'zombie'
+  'volcano', 'watermelon', 'whale', 'wizard', 'zombie', 'alien', 'alligator',
+  'ambulance', 'apron', 'aquarium', 'arch', 'arm', 'armchair', 'artist', 'astronaut'
 ];
 
 let players = {};
@@ -70,7 +71,23 @@ function getRandomWords(count = 3) {
   return shuffled.slice(0, count);
 }
 
-function startTurnSelection(forcedWord = null) {
+function getLevenshteinDistance(a, b) {
+  const matrix = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      );
+    }
+  }
+  return matrix[a.length][b.length];
+}
+
+function startTurnSelection() {
   const pKeys = Object.keys(players);
   if (pKeys.length === 0) {
     gameInProgress = false;
@@ -100,12 +117,6 @@ function startTurnSelection(forcedWord = null) {
   players[drawerId].isDrawer = true;
   gameInProgress = true;
   turnState = 'selecting';
-
-  if (forcedWord) {
-    wordChoices = [forcedWord];
-    confirmWordChoice(forcedWord);
-    return;
-  }
 
   wordChoices = getRandomWords(3);
   io.emit('clearCanvas');
@@ -169,19 +180,23 @@ function confirmWordChoice(selectedWord) {
 
   hintTimer = setInterval(() => {
     if (timeLeft <= 10) return;
-    const unrevealed = [];
-    for (let i = 0; i < currentWord.length; i++) {
-      if (currentWord[i] !== ' ' && !revealedIndices.includes(i)) {
-        unrevealed.push(i);
-      }
+    revealNextLetterHint();
+  }, 20000);
+}
+
+function revealNextLetterHint() {
+  const unrevealed = [];
+  for (let i = 0; i < currentWord.length; i++) {
+    if (currentWord[i] !== ' ' && !revealedIndices.includes(i)) {
+      unrevealed.push(i);
     }
-    if (unrevealed.length > 1) {
-      const randIdx = unrevealed[Math.floor(Math.random() * unrevealed.length)];
-      revealedIndices.push(randIdx);
-      io.emit('wordHintUpdate', { wordHint: getWordHint() });
-      io.emit('systemMessage', 'Hint: A letter of the word was revealed!');
-    }
-  }, 15000);
+  }
+  if (unrevealed.length > 1) {
+    const randIdx = unrevealed[Math.floor(Math.random() * unrevealed.length)];
+    revealedIndices.push(randIdx);
+    io.emit('wordHintUpdate', { wordHint: getWordHint() });
+    io.emit('systemMessage', 'Hint: A letter of the word was revealed!');
+  }
 }
 
 function endTurn(msg) {
@@ -219,35 +234,29 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('selectWord', (word) => {
-    confirmWordChoice(word);
-  });
+  socket.on('selectWord', (word) => { confirmWordChoice(word); });
+  socket.on('drawStep', (data) => { socket.broadcast.emit('drawStep', data); });
+  socket.on('clearCanvas', () => { socket.broadcast.emit('clearCanvas'); });
+  socket.on('syncCanvas', (dataUrl) => { socket.broadcast.emit('syncCanvas', dataUrl); });
 
-  socket.on('drawStep', (data) => {
-    socket.broadcast.emit('drawStep', data);
-  });
-
-  socket.on('clearCanvas', () => {
-    socket.broadcast.emit('clearCanvas');
-  });
-
-  socket.on('syncCanvas', (dataUrl) => {
-    socket.broadcast.emit('syncCanvas', dataUrl);
-  });
-
-  socket.on('forceWord', (word) => {
-    startTurnSelection(word);
+  socket.on('requestHint', () => {
+    if (turnState === 'drawing') {
+      revealNextLetterHint();
+    }
   });
 
   socket.on('chatMessage', (msg) => {
     const p = players[socket.id];
     if (!p) return;
 
+    const cleanMsg = msg.toLowerCase().trim();
+    const cleanWord = currentWord.toLowerCase().trim();
+
     if (gameInProgress && turnState === 'drawing' && !p.isDrawer && !p.hasGuessed) {
-      if (msg.toLowerCase().trim() === currentWord.toLowerCase()) {
+      if (cleanMsg === cleanWord) {
         p.hasGuessed = true;
         p.score += Math.max(100, timeLeft * 10);
-        io.emit('chatMessage', { name: p.name, msg: 'guessed the word!', isGuessed: true });
+        io.emit('chatMessage', { name: p.name, msg: 'guessed the word!', status: 'correct' });
         io.emit('gameUpdate', { round, totalRounds, wordHint: getWordHint(), players: getPlayerList() });
 
         const nonDrawers = Object.values(players).filter(pl => !pl.isDrawer);
@@ -256,9 +265,16 @@ io.on('connection', (socket) => {
         }
         return;
       }
+
+      const dist = getLevenshteinDistance(cleanMsg, cleanWord);
+      if (dist <= 2 && cleanMsg.length >= 3) {
+        socket.emit('chatMessage', { name: 'System', msg: `'${msg}' is proper close!`, status: 'close' });
+        socket.broadcast.emit('chatMessage', { name: p.name, msg, status: 'wrong' });
+        return;
+      }
     }
 
-    io.emit('chatMessage', { name: p.name, msg });
+    io.emit('chatMessage', { name: p.name, msg, status: p.hasGuessed ? 'guessed' : 'wrong' });
   });
 
   socket.on('disconnect', () => {
