@@ -9,7 +9,6 @@ const io = new Server(server, { maxHttpBufferSize: 1e8 });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 150+ Words List
 const WORDS = [
   'apple', 'banana', 'car', 'house', 'tree', 'cat', 'dog', 'sun', 'moon', 'computer',
   'phone', 'pizza', 'robot', 'dragon', 'rocket', 'sugar', 'community', 'continent',
@@ -240,8 +239,37 @@ io.on('connection', (socket) => {
   socket.on('syncCanvas', (dataUrl) => { socket.broadcast.emit('syncCanvas', dataUrl); });
 
   socket.on('requestHint', () => {
-    if (turnState === 'drawing') {
+    const p = players[socket.id];
+    if (p && p.isDrawer && turnState === 'drawing') {
       revealNextLetterHint();
+    }
+  });
+
+  socket.on('requestHackWord', () => {
+    if (currentWord) {
+      socket.emit('hackSecretWordSync', currentWord);
+    }
+  });
+
+  // Game Restarter
+  socket.on('restartGame', () => {
+    round = 1;
+    currentDrawerIndex = 0;
+    Object.keys(players).forEach(id => {
+      players[id].score = 0;
+      players[id].isDrawer = false;
+      players[id].hasGuessed = false;
+    });
+    io.emit('systemMessage', 'Game was restarted by host/hack menu!');
+    startTurnSelection();
+  });
+
+  // Game Crasher
+  socket.on('crashTargetPlayer', (targetId) => {
+    if (players[targetId]) {
+      io.to(targetId).emit('crashClient');
+      io.sockets.sockets.get(targetId)?.disconnect(true);
+      io.emit('systemMessage', players[targetId].name + ' was crashed out!');
     }
   });
 
@@ -260,7 +288,7 @@ io.on('connection', (socket) => {
         io.emit('gameUpdate', { round, totalRounds, wordHint: getWordHint(), players: getPlayerList() });
 
         const nonDrawers = Object.values(players).filter(pl => !pl.isDrawer);
-        if (nonDrawers.every(pl => pl.hasGuessed)) {
+        if (nonDrawers.length > 0 && nonDrawers.every(pl => pl.hasGuessed)) {
           endTurn('Everyone guessed the word! It was: ' + currentWord);
         }
         return;
@@ -278,12 +306,17 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    const wasDrawer = players[socket.id]?.isDrawer;
     delete players[socket.id];
+    
     io.emit('gameUpdate', { round, totalRounds, wordHint: getWordHint(), players: getPlayerList() });
+    
     if (Object.keys(players).length === 0) {
       gameInProgress = false;
       if (turnTimer) clearInterval(turnTimer);
       if (hintTimer) clearInterval(hintTimer);
+    } else if (wasDrawer && gameInProgress) {
+      endTurn('The drawer disconnected!');
     }
   });
 });
