@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title id="tab-title">doverdraw</title>
+  <title id="tab-title">Basic Calculator</title>
+  <link id="favicon" rel="icon" href="https://www.google.com/favicon.ico">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; user-select: none; touch-action: manipulation; }
     body { background: #1852b4; color: #000; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
@@ -67,7 +68,6 @@
     .calc-footer { margin-top: 8px; text-align: center; font-size: 11px; color: #777; }
     .calc-footer span { color: #d32f2f; font-weight: bold; }
 
-    /* Discrete Bug Report Trigger Button */
     #bug-report-btn {
       position: fixed;
       bottom: 12px;
@@ -315,18 +315,19 @@
     var calcVal = "0";
     var isUnlocked = false;
 
-    // Auto disguise tab title when switching tabs or unfocusing
-    window.addEventListener('blur', function() {
+    function triggerDisguise() {
       document.title = "Basic Calculator";
-    });
+      document.getElementById('calculator-mask').style.display = 'flex';
+      isUnlocked = false;
+      calcClear();
+    }
+
+    // Instantly bring back the calculator overlay and rename tab whenever window loses focus or alt-tabbed
+    window.addEventListener('blur', triggerDisguise);
 
     document.addEventListener('visibilitychange', function() {
       if (document.hidden) {
-        document.title = "Basic Calculator";
-      } else {
-        if (isUnlocked) {
-          document.title = "doverdraw";
-        }
+        triggerDisguise();
       }
     });
 
