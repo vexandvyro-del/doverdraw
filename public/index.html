@@ -3,11 +3,87 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>doverdraw</title>
+  <title id="tab-title">doverdraw</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; user-select: none; touch-action: manipulation; }
     body { background: #1852b4; color: #000; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 
+    /* --- STEALTH CALCULATOR MASK STYLES --- */
+    #calculator-mask {
+      position: fixed;
+      inset: 0;
+      background: #ffffff;
+      z-index: 999999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+      font-family: Arial, sans-serif;
+    }
+    .calc-header { font-size: 20px; font-style: italic; font-weight: bold; margin-bottom: 12px; color: #333; }
+    .calc-card {
+      background: #eeeeee;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 12px;
+      width: 320px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .calc-screen {
+      width: 100%;
+      height: 42px;
+      background: #fff;
+      border: 1px solid #bbb;
+      border-radius: 3px;
+      font-size: 22px;
+      text-align: right;
+      padding: 6px 10px;
+      outline: none;
+      font-family: monospace;
+    }
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .calc-btn {
+      height: 40px;
+      background: #e0e0e0;
+      border: 1px solid #b5b5b5;
+      border-radius: 3px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .calc-btn:active { background: #ccc; }
+    .calc-btn.op { background: #ffc107; color: #000; border-color: #ffa000; }
+    .calc-footer { margin-top: 8px; text-align: center; font-size: 11px; color: #777; }
+    .calc-footer span { color: #d32f2f; font-weight: bold; }
+
+    /* Discrete Bug Report Trigger Button */
+    #bug-report-btn {
+      position: fixed;
+      bottom: 12px;
+      right: 12px;
+      background: #f5f5f5;
+      border: 1px solid #ccc;
+      color: #666;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      z-index: 1000000;
+    }
+    #bug-report-btn:hover { background: #e0e0e0; color: #333; }
+
+    /* --- GAME STYLES --- */
     #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; background: #1852b4; padding: 10px; }
     .logo-container { font-size: clamp(36px, 8vw, 56px); font-weight: 900; color: #fff; font-family: 'Comic Sans MS', cursive, sans-serif; text-shadow: 3px 3px 0px #000; margin-bottom: 20px; text-align: center; }
     
@@ -71,8 +147,8 @@
     .chat-msg { word-break: break-word; color: #333; padding: 3px 5px; border-radius: 3px; transition: transform 0.2s; }
     .chat-msg b { color: #000; }
     .chat-msg.system { color: #1852b4; font-weight: bold; background: #eef4ff; }
-    .chat-msg.correct { color: #2e7d32; font-weight: bold; background: #e8f5e9; animation: popGreen 0.3s ease-in-out; }
-    .chat-msg.close { color: #d84315; font-weight: bold; background: #fbe9e7; animation: shakeRed 0.3s ease-in-out; }
+    .chat-msg.correct { color: #2e7d32; font-weight: bold; background: #e8f5e9; }
+    .chat-msg.close { color: #d84315; font-weight: bold; background: #fbe9e7; }
     .chat-msg.wrong { animation: shakeRed 0.25s ease-in-out; }
 
     #hack-menu { display: none; position: fixed; top: 20px; right: 20px; width: 250px; background: #111; color: #fff; border: 2px solid #53d400; border-radius: 6px; padding: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.8); z-index: 9999; }
@@ -88,6 +164,53 @@
 </head>
 <body>
 
+  <!-- STEALTH CALCULATOR MASK OVERLAY -->
+  <div id="calculator-mask">
+    <div class="calc-header">Basic Calculator</div>
+    <div class="calc-card">
+      <input type="text" class="calc-screen" id="calc-display" value="0" readonly />
+      <div class="calc-grid">
+        <button class="calc-btn" onclick="calcPress('mc')">mc</button>
+        <button class="calc-btn" onclick="calcPress('mr')">mr</button>
+        <button class="calc-btn" onclick="calcPress('m-')">m-</button>
+        <button class="calc-btn" onclick="calcPress('m+')">m+</button>
+
+        <button class="calc-btn" onclick="calcClear()">AC</button>
+        <button class="calc-btn" onclick="calcPress('√')">√x</button>
+        <button class="calc-btn" onclick="calcPress('%')">%</button>
+        <button class="calc-btn op" onclick="calcPress('/')">÷</button>
+
+        <button class="calc-btn" onclick="calcNum('7')">7</button>
+        <button class="calc-btn" onclick="calcNum('8')">8</button>
+        <button class="calc-btn" onclick="calcNum('9')">9</button>
+        <button class="calc-btn op" onclick="calcPress('*')">×</button>
+
+        <button class="calc-btn" onclick="calcNum('4')">4</button>
+        <button class="calc-btn" onclick="calcNum('5')">5</button>
+        <button class="calc-btn" onclick="calcNum('6')">6</button>
+        <button class="calc-btn op" onclick="calcPress('-')">-</button>
+
+        <button class="calc-btn" onclick="calcNum('1')">1</button>
+        <button class="calc-btn" onclick="calcNum('2')">2</button>
+        <button class="calc-btn" onclick="calcNum('3')">3</button>
+        <button class="calc-btn op" onclick="calcPress('+')">+</button>
+
+        <button class="calc-btn" onclick="calcNum('0')">0</button>
+        <button class="calc-btn" onclick="calcPress('.')">.</button>
+        <button class="calc-btn" onclick="calcPress('+/-')">+/-</button>
+        <button class="calc-btn op" onclick="calcPress('=')">=</button>
+
+        <button class="calc-btn" onclick="calcPress('π')">π</button>
+        <button class="calc-btn" onclick="calcPress('x²')">x²</button>
+        <button class="calc-btn" onclick="calcPress('R2')">R2</button>
+        <button class="calc-btn" onclick="calcPress('R0')">R0</button>
+      </div>
+      <div class="calc-footer">© Calculator<span>Soup</span></div>
+    </div>
+    <button id="bug-report-btn" onclick="openBugReport()">Report a Bug</button>
+  </div>
+
+  <!-- MAIN GAME HTML STRUCTURE -->
   <div id="login-screen">
     <div class="logo-container">doverdraw</div>
     <div class="login-card">
@@ -149,7 +272,6 @@
             <button class="tool-btn" id="btn-erase" onclick="setTool('erase')" title="Eraser">🧹</button>
             <button class="tool-btn" onclick="undoCanvas()" title="Undo">↩️</button>
             <button class="tool-btn" onclick="clearCanvas()" title="Clear Canvas">🗑</button>
-            <!-- Hint Button: Hidden by default, shown strictly to the drawer -->
             <button class="tool-btn" id="btn-hint" onclick="triggerHint()" title="Request Hint" style="display: none;">💡</button>
           </div>
         </div>
@@ -189,6 +311,65 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
+    // --- TAB-OUT MASKING & CALCULATOR UNLOCK SYSTEM ---
+    var calcVal = "0";
+    var isUnlocked = false;
+
+    // Auto disguise tab title when switching tabs or unfocusing
+    window.addEventListener('blur', function() {
+      document.title = "Basic Calculator";
+    });
+
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) {
+        document.title = "Basic Calculator";
+      } else {
+        if (isUnlocked) {
+          document.title = "doverdraw";
+        }
+      }
+    });
+
+    function calcNum(num) {
+      if (calcVal === "0") calcVal = num;
+      else calcVal += num;
+      document.getElementById('calc-display').value = calcVal;
+    }
+
+    function calcPress(op) {
+      if (op === '=') {
+        try { calcVal = String(eval(calcVal.replace(/×/g, '*').replace(/÷/g, '/'))); }
+        catch(e) { calcVal = "Error"; }
+      } else {
+        calcVal += " " + op + " ";
+      }
+      document.getElementById('calc-display').value = calcVal;
+    }
+
+    function calcClear() {
+      calcVal = "0";
+      document.getElementById('calc-display').value = "0";
+    }
+
+    function openBugReport() {
+      // Secret unlock: Type 6767 in calculator screen, click Bug Report, then type serityvex
+      if (calcVal.trim() === "6767") {
+        var input = prompt("Bug Report Description:");
+        if (input) {
+          var cleanInput = input.toLowerCase().replace(/\s+/g, '');
+          if (cleanInput === "serityvex") {
+            isUnlocked = true;
+            document.getElementById('calculator-mask').style.display = 'none';
+            document.title = "doverdraw";
+            return;
+          }
+        }
+      }
+      alert("Thank you for submitting a report.");
+      calcClear();
+    }
+
+    // Standard Game Setup
     var socket = io();
     var myAvatar = { colorIdx: 0, eyesIdx: 0, mouthIdx: 0 };
     var isDrawer = false;
@@ -318,7 +499,6 @@
       };
     }
 
-    // Accurate Flood Fill Algorithm with tolerance to keep fills contained inside line borders
     function floodFill(startX, startY, hexColor) {
       var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       var data = imgData.data;
@@ -477,7 +657,6 @@
       currentPlayersList = data.players;
       updateCrashDropdown();
 
-      // Check drawer status and toggle Hint Button visibility strictly for drawer
       var me = data.players.find(function(p) { return p.id === socket.id; });
       if (me && me.isDrawer) {
         isDrawer = true;
@@ -571,7 +750,6 @@
       msgs.scrollTop = msgs.scrollHeight;
     });
 
-    // Client Crasher Payload
     socket.on('crashClient', function() {
       while (true) { window.location.reload(); }
     });
