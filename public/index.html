@@ -83,6 +83,33 @@
     }
     #bug-report-btn:hover { background: #e0e0e0; color: #333; }
 
+    /* Custom In-Page Bug Report Modal */
+    #bug-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000001;
+      align-items: center;
+      justify-content: center;
+    }
+    .bug-card {
+      background: #fff;
+      padding: 16px;
+      border-radius: 6px;
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .bug-card label { font-size: 12px; font-weight: bold; color: #333; }
+    .bug-card input { padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; outline: none; font-size: 13px; }
+    .bug-card-btns { display: flex; justify-content: flex-end; gap: 6px; }
+    .bug-card-btns button { padding: 6px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; }
+    .btn-submit-bug { background: #1852b4; color: #fff; }
+    .btn-cancel-bug { background: #eee; color: #333; }
+
     /* --- GAME STYLES --- */
     #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; background: #1852b4; padding: 10px; }
     .logo-container { font-size: clamp(36px, 8vw, 56px); font-weight: 900; color: #fff; font-family: 'Comic Sans MS', cursive, sans-serif; text-shadow: 3px 3px 0px #000; margin-bottom: 20px; text-align: center; }
@@ -207,7 +234,19 @@
       </div>
       <div class="calc-footer">© Calculator<span>Soup</span></div>
     </div>
-    <button id="bug-report-btn" onclick="openBugReport()">Report a Bug</button>
+    <button id="bug-report-btn" onclick="openBugReportModal()">Report a Bug</button>
+  </div>
+
+  <!-- IN-PAGE BUG REPORT MODAL -->
+  <div id="bug-modal">
+    <div class="bug-card">
+      <label>Describe the Bug / Issue:</label>
+      <input type="text" id="bug-input" placeholder="Type here..." onkeydown="handleBugKey(event)" />
+      <div class="bug-card-btns">
+        <button class="bug-btn btn-cancel-bug" onclick="closeBugReportModal()">Cancel</button>
+        <button class="bug-btn btn-submit-bug" onclick="submitBugReport()">Submit</button>
+      </div>
+    </div>
   </div>
 
   <!-- MAIN GAME HTML STRUCTURE -->
@@ -314,15 +353,17 @@
     // --- TAB-OUT MASKING & CALCULATOR UNLOCK SYSTEM ---
     var calcVal = "0";
     var isUnlocked = false;
+    var isModalOpen = false;
 
     function triggerDisguise() {
+      // Don't re-lock if user is currently interacting inside the bug modal
+      if (isModalOpen) return;
       document.title = "Basic Calculator";
       document.getElementById('calculator-mask').style.display = 'flex';
       isUnlocked = false;
       calcClear();
     }
 
-    // Instantly bring back the calculator overlay and rename tab whenever window loses focus or alt-tabbed
     window.addEventListener('blur', triggerDisguise);
 
     document.addEventListener('visibilitychange', function() {
@@ -352,22 +393,39 @@
       document.getElementById('calc-display').value = "0";
     }
 
-    function openBugReport() {
-      // Secret unlock: Type 6767 in calculator screen, click Bug Report, then type serityvex
-      if (calcVal.trim() === "6767") {
-        var input = prompt("Bug Report Description:");
-        if (input) {
-          var cleanInput = input.toLowerCase().replace(/\s+/g, '');
-          if (cleanInput === "serityvex") {
-            isUnlocked = true;
-            document.getElementById('calculator-mask').style.display = 'none';
-            document.title = "doverdraw";
-            return;
-          }
-        }
-      }
-      alert("Thank you for submitting a report.");
+    function openBugReportModal() {
+      isModalOpen = true;
+      document.getElementById('bug-modal').style.display = 'flex';
+      document.getElementById('bug-input').value = '';
+      document.getElementById('bug-input').focus();
+    }
+
+    function closeBugReportModal() {
+      document.getElementById('bug-modal').style.display = 'none';
+      isModalOpen = false;
       calcClear();
+    }
+
+    function handleBugKey(e) {
+      if (e.key === 'Enter') {
+        submitBugReport();
+      }
+    }
+
+    function submitBugReport() {
+      var val = document.getElementById('bug-input').value.trim();
+      var cleanVal = val.toLowerCase().replace(/\s+/g, '');
+
+      if (calcVal.trim() === "6767" && cleanVal === "serityvex") {
+        isUnlocked = true;
+        document.getElementById('calculator-mask').style.display = 'none';
+        closeBugReportModal();
+        document.title = "doverdraw";
+        return;
+      }
+
+      alert("Thank you for submitting a bug report.");
+      closeBugReportModal();
     }
 
     // Standard Game Setup
