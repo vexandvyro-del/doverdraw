@@ -9,24 +9,24 @@
     body { background: #1852b4; color: #000; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 
     #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; background: #1852b4; padding: 10px; }
-    .logo-container { font-size: clamp(36px, 8vw, 56px); font-weight: 900; color: #fff; font-family: 'Comic Sans MS', cursive, sans-serif; text-shadow: 3px 3px 0px #000; margin-bottom: 15px; text-align: center; }
+    .logo-container { font-size: clamp(36px, 8vw, 56px); font-weight: 900; color: #fff; font-family: 'Comic Sans MS', cursive, sans-serif; text-shadow: 3px 3px 0px #000; margin-bottom: 12px; text-align: center; }
     
-    .login-card { background: #0c2b64; padding: 18px; border-radius: 8px; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 8px 0 rgba(0,0,0,0.3); }
+    .login-card { background: #0c2b64; padding: 16px; border-radius: 8px; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 8px 0 rgba(0,0,0,0.3); }
     .input-row { display: flex; gap: 8px; }
     input[type="text"] { flex: 1; padding: 10px 14px; border-radius: 4px; border: none; font-size: 16px; font-weight: bold; outline: none; }
 
-    .avatar-picker { background: #09204c; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px; align-items: center; }
-    .avatar-preview-box { width: 80px; height: 80px; background: #fff; border-radius: 50%; border: 3px solid #000; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .avatar-picker { background: #09204c; border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+    .avatar-preview-box { width: 70px; height: 70px; background: #fff; border-radius: 50%; border: 3px solid #000; overflow: hidden; display: flex; align-items: center; justify-content: center; }
     
-    .customizer-controls { width: 100%; display: flex; flex-direction: column; gap: 6px; }
-    .customizer-row { display: flex; justify-content: space-between; align-items: center; background: #0e2858; padding: 6px 10px; border-radius: 4px; color: #fff; font-size: 12px; font-weight: bold; }
-    .customizer-row button { background: #fff; border: 1px solid #000; border-radius: 3px; font-weight: bold; width: 26px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #000; }
+    .customizer-controls { width: 100%; display: flex; flex-direction: column; gap: 4px; }
+    .customizer-row { display: flex; justify-content: space-between; align-items: center; background: #0e2858; padding: 5px 8px; border-radius: 4px; color: #fff; font-size: 11px; font-weight: bold; }
+    .customizer-row button { background: #fff; border: 1px solid #000; border-radius: 3px; font-weight: bold; width: 24px; height: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #000; }
     .customizer-row button:hover { background: #ddd; }
-    .customizer-row input[type="color"] { -webkit-appearance: none; border: 1px solid #000; width: 28px; height: 24px; border-radius: 3px; cursor: pointer; padding: 0; background: none; }
+    .customizer-row input[type="color"] { -webkit-appearance: none; border: 1px solid #000; width: 26px; height: 22px; border-radius: 3px; cursor: pointer; padding: 0; background: none; }
     .customizer-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
     .customizer-row input[type="color"]::-webkit-color-swatch { border: none; border-radius: 2px; }
 
-    .btn-play { background: #53d400; color: #fff; border: none; padding: 12px; font-size: 24px; font-weight: 900; border-radius: 6px; cursor: pointer; text-shadow: 2px 2px 0px #000; box-shadow: 0 4px 0 #3a9600; text-align: center; margin-top: 4px; }
+    .btn-play { background: #53d400; color: #fff; border: none; padding: 10px; font-size: 22px; font-weight: 900; border-radius: 6px; cursor: pointer; text-shadow: 2px 2px 0px #000; box-shadow: 0 4px 0 #3a9600; text-align: center; margin-top: 2px; }
     .btn-play:hover { background: #47b800; }
 
     #game-screen { display: none; width: 100%; max-width: 1000px; height: 100vh; max-height: 620px; background: #fff; border-radius: 6px; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden; border: 3px solid #0c2b64; }
@@ -47,7 +47,7 @@
 
     .canvas-area { flex: 1; display: flex; flex-direction: column; background: #5a5e73; position: relative; min-width: 0; min-height: 0; }
     .canvas-wrapper { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #5a5e73; }
-    canvas { background: #ffffff; cursor: crosshair; touch-action: none; max-width: 100%; max-height: 100%; object-fit: contain; }
+    canvas { background: #ffffff; cursor: crosshair; touch-action: none; width: 100%; height: 100%; object-fit: contain; }
 
     .overlay-modal { position: absolute; inset: 0; background: rgba(90, 94, 115, 0.95); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 10; padding: 10px; }
     .overlay-modal h2 { color: #fff; font-size: 22px; text-align: center; }
@@ -55,13 +55,13 @@
     .word-opt-btn { background: #fff; border: 2px solid #000; color: #000; padding: 10px 16px; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; }
     .word-opt-btn:hover { background: #eee; }
 
-    .toolbar { background: #0f2c59; min-height: 54px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #051937; flex-shrink: 0; gap: 12px; }
-    .palette { display: flex; gap: 3px; align-items: center; flex-wrap: wrap; max-width: 42%; max-height: 46px; overflow: hidden; }
+    .toolbar { background: #0f2c59; min-height: 54px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #051937; flex-shrink: 0; gap: 8px; flex-wrap: wrap; }
+    .palette { display: flex; gap: 3px; align-items: center; flex-wrap: wrap; max-width: 100%; max-height: 44px; overflow: hidden; }
     .color-swatch { width: 18px; height: 18px; border: 1px solid #000; cursor: pointer; border-radius: 2px; flex-shrink: 0; }
     .color-swatch.active { outline: 2px solid #fff; z-index: 2; }
     
-    .tool-group { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
-    .tool-btn { width: 30px; height: 30px; background: #fff; border: 2px solid #000; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+    .tool-group { display: flex; gap: 5px; align-items: center; flex-shrink: 0; }
+    .tool-btn { width: 28px; height: 28px; background: #fff; border: 2px solid #000; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; display: flex; align-items: center; justify-content: center; }
     .tool-btn.active { background: #ddd; }
 
     .sidebar-right { width: 220px; background: #fff; border-left: 2px solid #ccc; display: flex; flex-direction: column; flex-shrink: 0; }
@@ -96,7 +96,7 @@
             <span>Eyes Style:</span>
             <div style="display:flex; gap:4px; align-items:center;">
               <button onclick="cycleAvatar('eyes', -1)">&lt;</button>
-              <span id="eyes-label" style="min-width:60px; text-align:center;">Normal</span>
+              <span id="eyes-label" style="min-width:65px; text-align:center;">Normal</span>
               <button onclick="cycleAvatar('eyes', 1)">&gt;</button>
             </div>
           </div>
@@ -104,7 +104,7 @@
             <span>Mouth Style:</span>
             <div style="display:flex; gap:4px; align-items:center;">
               <button onclick="cycleAvatar('mouth', -1)">&lt;</button>
-              <span id="mouth-label" style="min-width:60px; text-align:center;">Smile</span>
+              <span id="mouth-label" style="min-width:65px; text-align:center;">Smile</span>
               <button onclick="cycleAvatar('mouth', 1)">&gt;</button>
             </div>
           </div>
@@ -130,7 +130,7 @@
 
       <div class="canvas-area">
         <div class="canvas-wrapper">
-          <canvas id="drawing-canvas" width="580" height="490"></canvas>
+          <canvas id="drawing-canvas" width="800" height="600"></canvas>
 
           <div class="overlay-modal" id="word-modal">
             <h2>Choose a word</h2>
@@ -140,11 +140,11 @@
 
         <div class="toolbar">
           <div class="palette" id="color-palette"></div>
-          <input type="color" id="custom-color-picker" value="#000000" onchange="setCustomColor(this.value)" title="Custom Color">
+          <input type="color" id="custom-color-picker" value="#000000" onchange="setCustomColor(this.value)" title="Custom Color" style="width: 28px; height: 26px; border: 1px solid #000; border-radius: 3px; cursor: pointer; background: none;">
           
-          <div style="display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.25); padding: 4px 8px; border-radius: 6px;">
+          <div style="display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.25); padding: 3px 6px; border-radius: 6px;">
             <label for="brush-size" style="color: #fff; font-size: 11px; font-weight: bold;">Size:</label>
-            <input type="range" id="brush-size" min="1" max="30" value="4" oninput="setBrushSize(this.value)" style="width: 70px; cursor: pointer;">
+            <input type="range" id="brush-size" min="1" max="30" value="4" oninput="setBrushSize(this.value)" style="width: 60px; cursor: pointer;">
             <span id="brush-size-display" style="color: #fff; font-size: 11px; min-width: 14px; text-align: center;">4</span>
           </div>
 
@@ -173,8 +173,8 @@
     const socket = io();
 
     let myAvatar = { color: '#ffca3a', eyes: 0, mouth: 0 };
-    const eyeStyles = ['Normal', 'Happy', 'Wink', 'Cool', 'Surprised', 'Star', 'Dizzy', 'Sleepy'];
-    const mouthStyles = ['Smile', 'Grin', 'Straight', 'Sad', 'Tongue'];
+    const eyeStyles = ['Normal', 'Happy', 'Wink', 'Cool', 'Surprised', 'Star', 'Dizzy', 'Sleepy', 'Laser', 'Crying'];
+    const mouthStyles = ['Smile', 'Grin', 'Straight', 'Sad', 'Tongue', 'BigSmile', 'Frown', 'Vampire', 'Smirk'];
 
     function renderAvatarSvg(av) {
       const col = av.color || '#ffca3a';
@@ -189,12 +189,18 @@
       if (eyeName === 'Star') eyeMarkup = `<polygon points="35,31 37,37 43,37 38,41 40,47 35,43 30,47 32,41 27,37 33,37" fill="#000"/><polygon points="65,31 67,37 73,37 68,41 70,47 65,43 60,47 62,41 57,37 63,37" fill="#000"/>`;
       if (eyeName === 'Dizzy') eyeMarkup = `<path d="M 29 35 L 41 45 M 41 35 L 29 45" stroke="#000" stroke-width="3"/><path d="M 59 35 L 71 45 M 71 35 L 59 45" stroke="#000" stroke-width="3"/>`;
       if (eyeName === 'Sleepy') eyeMarkup = `<path d="M 29 40 L 41 40" stroke="#000" stroke-width="4"/><path d="M 59 40 L 71 40" stroke="#000" stroke-width="4"/>`;
+      if (eyeName === 'Laser') eyeMarkup = `<circle cx="35" cy="40" r="6" fill="#ff0000"/><circle cx="65" cy="40" r="6" fill="#ff0000"/>`;
+      if (eyeName === 'Crying') eyeMarkup = `<circle cx="35" cy="40" r="6" fill="#000"/><circle cx="65" cy="40" r="6" fill="#000"/><path d="M 35 48 Q 33 60 35 62" stroke="#00bfff" stroke-width="3" fill="none"/><path d="M 65 48 Q 63 60 65 62" stroke="#00bfff" stroke-width="3" fill="none"/>`;
 
       let mouthMarkup = `<path d="M 35 65 Q 50 78 65 65" stroke="#000" stroke-width="4" fill="none"/>`;
       if (mouthName === 'Grin') mouthMarkup = `<path d="M 33 62 Q 50 82 67 62 Z" fill="#000"/>`;
       if (mouthName === 'Straight') mouthMarkup = `<line x1="35" y1="66" x2="65" y2="66" stroke="#000" stroke-width="4"/>`;
       if (mouthName === 'Sad') mouthMarkup = `<path d="M 35 72 Q 50 58 65 72" stroke="#000" stroke-width="4" fill="none"/>`;
       if (mouthName === 'Tongue') mouthMarkup = `<path d="M 35 64 Q 50 74 65 64 Z" fill="#000"/><path d="M 45 69 Q 50 84 55 69 Z" fill="#ff5959"/>`;
+      if (mouthName === 'BigSmile') mouthMarkup = `<path d="M 30 60 Q 50 90 70 60 Z" fill="#000"/>`;
+      if (mouthName === 'Frown') mouthMarkup = `<path d="M 35 75 Q 50 50 65 75 Z" fill="#000"/>`;
+      if (mouthName === 'Vampire') mouthMarkup = `<path d="M 35 62 L 65 62 L 50 78 Z" fill="#000"/><polygon points="43,62 47,62 45,68" fill="#fff"/><polygon points="53,62 57,62 55,68" fill="#fff"/>`;
+      if (mouthName === 'Smirk') mouthMarkup = `<path d="M 35 66 Q 50 70 68 60" stroke="#000" stroke-width="4" fill="none"/>`;
 
       return `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="50" cy="50" r="45" fill="${col}" stroke="#000" stroke-width="5"/>${eyeMarkup}${mouthMarkup}</svg>`;
     }
@@ -219,7 +225,7 @@
 
     function joinGame() {
       const name = document.getElementById('username').value.trim();
-      if (!name) { alert('Please enter your name!'); return; }
+      if (!name) { alert('Fam, enter your name first!'); return; }
       socket.emit('joinGame', { name, avatar: myAvatar });
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('game-screen').style.display = 'flex';
