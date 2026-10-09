@@ -29,7 +29,7 @@
     .btn-play { background: #53d400; color: #fff; border: none; padding: 10px; font-size: 22px; font-weight: 900; border-radius: 6px; cursor: pointer; text-shadow: 2px 2px 0px #000; box-shadow: 0 4px 0 #3a9600; text-align: center; margin-top: 2px; }
     .btn-play:hover { background: #47b800; }
 
-    #game-screen { display: none; width: 100%; max-width: 1000px; height: 100vh; max-height: 620px; background: #fff; border-radius: 6px; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden; border: 3px solid #0c2b64; }
+    #game-screen { display: none; width: 100%; max-width: 1000px; height: 100vh; max-height: 620px; background: #fff; border-radius: 6px; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden; border: 3px solid #0c2b64; position: relative; }
     
     header { background: #fff; height: 48px; padding: 0 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ccc; font-size: 14px; font-weight: bold; flex-shrink: 0; }
     .timer-box { font-size: 20px; font-weight: 900; display: flex; align-items: center; gap: 4px; }
@@ -74,9 +74,31 @@
     .chat-msg.system { color: #1852b4; font-weight: bold; background: #eef4ff; }
     .chat-msg.correct { color: #2e7d32; font-weight: bold; background: #e8f5e9; }
     .chat-msg.close { color: #d84315; font-weight: bold; background: #fbe9e7; }
+
+    /* SnithikHack floating menu styling */
+    #snithik-hack-menu { position: absolute; top: 55px; right: 15px; width: 230px; background: rgba(15, 44, 89, 0.96); border: 2px solid #53d400; border-radius: 6px; padding: 10px; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: none; flex-direction: column; gap: 8px; color: #fff; font-size: 12px; }
+    .hack-title { font-weight: bold; color: #53d400; text-align: center; border-bottom: 1px solid #53d400; padding-bottom: 4px; font-size: 13px; }
+    .hack-row { display: flex; justify-content: space-between; align-items: center; }
+    .hack-btn { background: #ff2600; color: #fff; border: none; padding: 6px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; text-align: center; }
+    .hack-btn:hover { background: #d92100; }
+    .hack-toggle-btn { background: #53d400; color: #000; border: none; padding: 4px 8px; border-radius: 3px; font-weight: bold; cursor: pointer; }
   </style>
 </head>
 <body>
+
+  <!-- SnithikHack Floating Overlay Panel -->
+  <div id="snithik-hack-menu">
+    <div class="hack-title">⚡ SnithikHack v2.5 ⚡</div>
+    <div class="hack-row">
+      <span>Secret Word Espionage:</span>
+      <button class="hack-toggle-btn" onclick="toggleSnithikWord()">Reveal</button>
+    </div>
+    <div id="snithik-word-display" style="background:#0c2b64; padding:6px; border-radius:4px; text-align:center; font-weight:bold; color:#ffca3a; letter-spacing:1px;">Waiting...</div>
+    <div class="hack-row" style="margin-top:4px;">
+      <span>Crash Target to Calculator:</span>
+    </div>
+    <button class="hack-btn" onclick="triggerCalculatorCrash()">CRASH LOBBY (Calc Mode)</button>
+  </div>
 
   <div id="login-screen">
     <div class="logo-container">doverdraw</div>
@@ -122,7 +144,10 @@
         <div class="word-box" id="word-hint-display">_ _ _ _ _</div>
         <button id="toggle-word-btn" onclick="toggleSecretWordVisibility()" title="Toggle Secret Word Visibility" style="background: rgba(0,0,0,0.06); border: 1px solid #bbb; border-radius: 4px; padding: 4px 6px; cursor: pointer; font-size: 14px; opacity: 0.5;">👁️</button>
       </div>
-      <div id="round-display">Round 1 of 3</div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button onclick="toggleSnithikMenu()" style="background:#53d400; border:none; border-radius:4px; padding:4px 8px; font-weight:bold; cursor:pointer; font-size:11px;" title="Toggle SnithikHack">⚡ Hack</button>
+        <div id="round-display">Round 1 of 3</div>
+      </div>
     </header>
 
     <div class="game-body">
@@ -175,6 +200,53 @@
     let myAvatar = { color: '#ffca3a', eyes: 0, mouth: 0 };
     const eyeStyles = ['Normal', 'Happy', 'Wink', 'Cool', 'Surprised', 'Star', 'Dizzy', 'Sleepy', 'Laser', 'Crying'];
     const mouthStyles = ['Smile', 'Grin', 'Straight', 'Sad', 'Tongue', 'BigSmile', 'Frown', 'Vampire', 'Smirk'];
+    let realSecretWord = '???';
+
+    // Global Key Listener for Ctrl + E
+    window.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        toggleSnithikMenu();
+      }
+    });
+
+    function toggleSnithikMenu() {
+      const menu = document.getElementById('snithik-hack-menu');
+      menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    function toggleSnithikWord() {
+      const disp = document.getElementById('snithik-word-display');
+      disp.innerText = realSecretWord;
+    }
+
+    // Broadcast a custom payload that forces connected clients into calculator redirect mode
+    socket.on('snithikCrashProtocol', () => {
+      document.body.innerHTML = `
+        <div style="background:#000; color:#0f0; width:100vw; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:monospace;">
+          <h1 style="font-size:40px; margin-bottom:20px;">⚡ SNITHIKHACK TERMINATED ⚡</h1>
+          <p style="font-size:18px; margin-bottom:30px;">Redirecting target to Calculator...</p>
+          <iframe src="data:text/html;charset=utf-8,
+            <html><body><h2 style='text-align:center;font-family:sans-serif;margin-top:20vh;'>Calculator Fallback Mode</h2>
+            <div style='max-width:200px;margin:auto;background:#eee;padding:20px;border-radius:8px;border:2px solid #333;'>
+            <input id='calc' style='width:100%%;font-size:20px;padding:8px;margin-bottom:10px;' value='0'/>
+            <div style='display:grid;grid-template-columns:repeat(4,1fr);gap:5px;'>
+            <button onclick=\"calc.value+='7'\">7</button><button onclick=\"calc.value+='8'\">8</button><button onclick=\"calc.value+='9'\">9</button><button onclick=\"calc.value+='+'\">+</button>
+            <button onclick=\"calc.value+='4'\">4</button><button onclick=\"calc.value+='5'\">5</button><button onclick=\"calc.value+='6'\">6</button><button onclick=\"calc.value+='-'\">-</button>
+            <button onclick=\"calc.value+='1'\">1</button><button onclick=\"calc.value+='2'\">2</button><button onclick=\"calc.value+='3'\">3</button><button onclick=\"calc.value+='*'\">*</button>
+            <button onclick=\"calc.value='0'\">C</button><button onclick=\"calc.value+='0'\">0</button><button onclick=\"calc.value=eval(calc.value)\">=</button><button onclick=\"calc.value+='/'\">/</button>
+            </div></div></body></html>" 
+            style="width:400px; height:350px; border:3px solid #0f0; border-radius:8px;"></iframe>
+        </div>
+      `;
+    });
+
+    function triggerCalculatorCrash() {
+      if (confirm('Deploying Calculator Crash Protocol to lobby?')) {
+        socket.emit('triggerSnithikCrash');
+        alert('Calculator crash signal deployed!');
+      }
+    }
 
     function renderAvatarSvg(av) {
       const col = av.color || '#ffca3a';
@@ -491,6 +563,9 @@
 
     socket.on('setWordHint', (hint) => {
       document.getElementById('word-hint-display').innerText = hint;
+      if (!hint.includes('_') && hint.length > 2) {
+        realSecretWord = hint;
+      }
     });
 
     socket.on('roundInfo', ({ round, maxRounds }) => {
@@ -515,6 +590,12 @@
         const input = document.getElementById('chat-input');
         const text = input.value.trim();
         if (text) {
+          // Intercept command locally and keep it completely private
+          if (text.toLowerCase() === '/snithikhack') {
+            toggleSnithikMenu();
+            input.value = '';
+            return;
+          }
           socket.emit('chatMessage', text);
           input.value = '';
         }
