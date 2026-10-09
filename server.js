@@ -1,325 +1,224 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { maxHttpBufferSize: 1e8 });
+const io = new Server(server);
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static('public'));
 
 const WORDS = [
-  'apple', 'banana', 'car', 'house', 'tree', 'cat', 'dog', 'sun', 'moon', 'computer',
-  'phone', 'pizza', 'robot', 'dragon', 'rocket', 'sugar', 'community', 'continent',
-  'airplane', 'anchor', 'angel', 'ant', 'anvil', 'apartment', 'arrow', 'avocado', 'axe',
-  'bacon', 'badge', 'balloon', 'baseball', 'basket', 'bat', 'beach', 'bear', 'bed',
-  'bell', 'bicycle', 'bird', 'birthday', 'boat', 'bomb', 'book', 'boomerang', 'bottle',
-  'brain', 'bread', 'bridge', 'broom', 'brush', 'burger', 'bus', 'butterfly', 'cactus',
-  'camera', 'candle', 'candy', 'castle', 'chair', 'cheese', 'cherry', 'chess', 'chicken',
-  'clock', 'cloud', 'coffin', 'coin', 'compass', 'cookie', 'cow', 'crab', 'crown',
-  'cupcake', 'diamond', 'dinosaur', 'donut', 'door', 'duck', 'eagle', 'earth', 'egg',
-  'eyeball', 'feather', 'fire', 'fish', 'flamingo', 'flashlight', 'flower', 'frog',
-  'ghost', 'giraffe', 'glasses', 'globe', 'gold', 'guitar', 'hammer', 'hamburger',
-  'island', 'jellyfish', 'kangaroo', 'key', 'king', 'kite', 'knife', 'ladder', 'lamp',
-  'lighthouse', 'lion', 'lizard', 'magnet', 'map', 'mask', 'monkey', 'mountain',
-  'ninja', 'octopus', 'owl', 'pancake', 'parrot', 'peacock', 'penguin', 'piano',
-  'planet', 'popcorn', 'pumpkin', 'pyramid', 'queen', 'rainbow', 'ring', 'robot',
-  'satellite', 'scissor', 'scorpion', 'shark', 'shield', 'ship', 'shoe', 'skeleton',
-  'snake', 'snowman', 'spider', 'sponge', 'star', 'sword', 'telephone', 'telescope',
-  'tiger', 'toast', 'tornado', 'treasure', 'trophy', 'turtle', 'umbrella', 'unicorn',
-  'volcano', 'watermelon', 'whale', 'wizard', 'zombie', 'alien', 'alligator',
-  'ambulance', 'apron', 'aquarium', 'arch', 'arm', 'armchair', 'artist', 'astronaut'
+  'apple', 'banana', 'cat', 'dog', 'house', 'car', 'tree', 'sun', 'fish', 'book',
+  'guitar', 'computer', 'pizza', 'rocket', 'castle', 'island', 'bridge', 'phone',
+  'bicycle', 'camera', 'penguin', 'robot', 'dragon', 'volcano', 'umbrella'
 ];
 
-let players = {};
+let players = [];
 let currentDrawerIndex = 0;
 let currentWord = '';
-let wordChoices = [];
-let round = 1;
-const totalRounds = 3;
-let turnTimer = null;
-let hintTimer = null;
-let timeLeft = 60;
-let gameInProgress = false;
-let revealedIndices = [];
-let turnState = 'waiting';
-
-function getPlayerList() {
-  return Object.values(players).map(p => ({
-    id: p.id,
-    name: p.name,
-    avatar: p.avatar,
-    score: p.score,
-    isDrawer: p.isDrawer,
-    hasGuessed: p.hasGuessed
-  }));
-}
-
-function getWordHint() {
-  if (!currentWord) return '';
-  return currentWord.split('').map((char, idx) => {
-    if (char === ' ') return '  ';
-    if (revealedIndices.includes(idx)) return char + ' ';
-    return '_ ';
-  }).join('');
-}
+let secretHint = '';
+let roundTimer = 60;
+let timerInterval = null;
+let gameState = 'waiting'; // waiting, choosing, drawing, ended
+let roundNumber = 1;
+const maxRounds = 3;
 
 function getRandomWords(count = 3) {
   const shuffled = [...WORDS].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, count);
 }
 
-function getLevenshteinDistance(a, b) {
-  const matrix = Array.from({ length: a.length + 1 }, (_, i) => [i]);
-  for (let j = 1; j <= b.length; j++) matrix[0][j] = j;
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      matrix[i][j] = Math.min(
-        matrix[i - 1][j] + 1,
-        matrix[i][j - 1] + 1,
-        matrix[i - 1][j - 1] + cost
-      );
-    }
-  }
-  return matrix[a.length][b.length];
+function broadcastPlayers() {
+  io.emit('updatePlayers', players.map((p, idx) => ({
+    name: p.name,
+    score: p.score,
+    avatar: p.avatar,
+    isDrawer: idx === currentDrawerIndex && gameState === 'drawing'
+  })));
 }
 
-function startTurnSelection() {
-  const pKeys = Object.keys(players);
-  if (pKeys.length === 0) {
-    gameInProgress = false;
-    if (turnTimer) clearInterval(turnTimer);
-    if (hintTimer) clearInterval(hintTimer);
+function startChoosingPhase() {
+  gameState = 'choosing';
+  clearInterval(timerInterval);
+  roundTimer = 15;
+
+  if (players.length === 0) {
+    gameState = 'waiting';
     return;
   }
 
-  pKeys.forEach(id => {
-    players[id].isDrawer = false;
-    players[id].hasGuessed = false;
-  });
-
-  if (currentDrawerIndex >= pKeys.length) {
+  if (currentDrawerIndex >= players.length) {
     currentDrawerIndex = 0;
-    round++;
-    if (round > totalRounds) {
-      round = 1;
-      pKeys.forEach(id => (players[id].score = 0));
-      io.emit('systemMessage', 'Game Over! Scores reset for a new game.');
+    roundNumber++;
+    if (roundNumber > maxRounds) {
+      io.emit('chatMessage', { type: 'system', text: 'Game Over! Thanks for playing.' });
+      gameState = 'waiting';
+      return;
     }
   }
 
-  const drawerId = pKeys[currentDrawerIndex];
-  if (!drawerId || !players[drawerId]) return;
+  io.emit('roundInfo', { round: roundNumber, maxRounds });
+  broadcastPlayers();
+  io.emit('canvasClear');
 
-  players[drawerId].isDrawer = true;
-  gameInProgress = true;
-  turnState = 'selecting';
+  const drawer = players[currentDrawerIndex];
+  if (!drawer) return;
 
-  wordChoices = getRandomWords(3);
-  io.emit('clearCanvas');
-  io.emit('gameUpdate', {
-    round,
-    totalRounds,
-    wordHint: 'Choosing a word...',
-    players: getPlayerList(),
-    turnState: 'selecting'
-  });
+  const choices = getRandomWords(3);
+  io.to(drawer.id).emit('wordChoice', choices);
+  io.emit('setWordHint', '_ _ _ _ _');
+  io.emit('chatMessage', { type: 'system', text: `${drawer.name} is choosing a word...` });
 
-  io.to(drawerId).emit('chooseWordOptions', wordChoices);
-  io.emit('systemMessage', players[drawerId].name + ' is choosing a word!');
-
-  timeLeft = 15;
-  if (turnTimer) clearInterval(turnTimer);
-  if (hintTimer) clearInterval(hintTimer);
-
-  turnTimer = setInterval(() => {
-    timeLeft--;
-    io.emit('timerUpdate', { timeLeft });
-    if (timeLeft <= 0) {
-      clearInterval(turnTimer);
-      confirmWordChoice(wordChoices[Math.floor(Math.random() * wordChoices.length)]);
+  timerInterval = setInterval(() => {
+    roundTimer--;
+    io.emit('updateTimer', roundTimer);
+    if (roundTimer <= 0) {
+      clearInterval(timerInterval);
+      // Auto pick first word if drawer times out
+      startDrawingPhase(choices[0]);
     }
   }, 1000);
 }
 
-function confirmWordChoice(selectedWord) {
-  if (turnTimer) clearInterval(turnTimer);
-  if (hintTimer) clearInterval(hintTimer);
+function startDrawingPhase(word) {
+  gameState = 'drawing';
+  currentWord = word.toLowerCase();
+  clearInterval(timerInterval);
+  roundTimer = 60;
 
-  const pKeys = Object.keys(players);
-  const drawerId = pKeys[currentDrawerIndex];
-  if (!drawerId || !players[drawerId]) return;
+  secretHint = currentWord.split('').map(c => c === ' ' ? ' ' : '_').join(' ');
+  io.emit('setWordHint', secretHint);
+  io.emit('hideWordModal');
 
-  currentWord = selectedWord;
-  turnState = 'drawing';
-  timeLeft = 60;
-  revealedIndices = [];
+  const drawer = players[currentDrawerIndex];
+  io.emit('chatMessage', { type: 'system', text: `Round started! Draw: ${currentWord} (for drawer only)` });
 
-  io.emit('gameUpdate', {
-    round,
-    totalRounds,
-    wordHint: getWordHint(),
-    players: getPlayerList(),
-    turnState: 'drawing'
+  // Send hint length to non-drawers
+  players.forEach((p, idx) => {
+    if (idx === currentDrawerIndex) {
+      io.to(p.id).emit('setWordHint', currentWord);
+    } else {
+      io.to(p.id).emit('setWordHint', secretHint);
+    }
   });
 
-  io.to(drawerId).emit('yourTurn', { word: currentWord });
-  io.emit('systemMessage', players[drawerId].name + ' is drawing now!');
+  timerInterval = setInterval(() => {
+    roundTimer--;
+    io.emit('updateTimer', roundTimer);
 
-  turnTimer = setInterval(() => {
-    timeLeft--;
-    io.emit('timerUpdate', { timeLeft });
+    // Reveal a hint character every 20 seconds
+    if (roundTimer === 40 || roundTimer === 20) {
+      revealHintChar();
+    }
 
-    if (timeLeft <= 0) {
-      endTurn("Time's up! The word was: " + currentWord);
+    if (roundTimer <= 0) {
+      clearInterval(timerInterval);
+      io.emit('chatMessage', { type: 'system', text: `Time is up! The word was: ${currentWord}` });
+      setTimeout(nextTurn, 3000);
     }
   }, 1000);
-
-  hintTimer = setInterval(() => {
-    if (timeLeft <= 10) return;
-    revealNextLetterHint();
-  }, 20000);
 }
 
-function revealNextLetterHint() {
-  const unrevealed = [];
-  for (let i = 0; i < currentWord.length; i++) {
-    if (currentWord[i] !== ' ' && !revealedIndices.includes(i)) {
-      unrevealed.push(i);
-    }
-  }
-  if (unrevealed.length > 1) {
-    const randIdx = unrevealed[Math.floor(Math.random() * unrevealed.length)];
-    revealedIndices.push(randIdx);
-    io.emit('wordHintUpdate', { wordHint: getWordHint() });
-    io.emit('systemMessage', 'Hint: A letter of the word was revealed!');
+function revealHintChar() {
+  const chars = secretHint.split(' ');
+  const unrevealedIndices = [];
+  chars.forEach((c, i) => {
+    if (c === '_') unrevealedIndices.push(i);
+  });
+
+  if (unrevealedIndices.length > 1) {
+    const randIdx = unrevealedIndices[Math.floor(Math.random() * unrevealedIndices.length)];
+    chars[randIdx] = currentWord[randIdx];
+    secretHint = chars.join(' ');
+    players.forEach((p, idx) => {
+      if (idx !== currentDrawerIndex) {
+        io.to(p.id).emit('setWordHint', secretHint);
+      }
+    });
   }
 }
 
-function endTurn(msg) {
-  if (turnTimer) clearInterval(turnTimer);
-  if (hintTimer) clearInterval(hintTimer);
-  turnState = 'ended';
-  io.emit('systemMessage', msg);
-  io.emit('turnEnded', { word: currentWord });
+function nextTurn() {
   currentDrawerIndex++;
-  setTimeout(() => {
-    startTurnSelection();
-  }, 4000);
+  startChoosingPhase();
 }
 
 io.on('connection', (socket) => {
-  socket.on('joinGame', (data) => {
-    players[socket.id] = {
+  socket.on('joinGame', ({ name, avatar }) => {
+    players.push({
       id: socket.id,
-      name: data.name,
-      avatar: data.avatar,
+      name: name || 'Player',
       score: 0,
-      isDrawer: false,
-      hasGuessed: false
-    };
-
-    io.emit('gameUpdate', {
-      round,
-      totalRounds,
-      wordHint: getWordHint() || 'Waiting for players...',
-      players: getPlayerList()
+      avatar: avatar || { color: '#ffca3a', eyes: 0, mouth: 0 }
     });
 
-    if (Object.keys(players).length === 1 && !gameInProgress) {
-      startTurnSelection();
+    broadcastPlayers();
+    io.emit('chatMessage', { type: 'system', text: `${name} joined the game.` });
+
+    if (gameState === 'waiting' && players.length >= 2) {
+      roundNumber = 1;
+      currentDrawerIndex = 0;
+      startChoosingPhase();
+    } else if (gameState === 'waiting' && players.length === 1) {
+      socket.emit('chatMessage', { type: 'system', text: 'Waiting for at least one more player to start!' });
     }
   });
 
-  socket.on('selectWord', (word) => { confirmWordChoice(word); });
-  socket.on('drawStep', (data) => { socket.broadcast.emit('drawStep', data); });
-  socket.on('clearCanvas', () => { socket.broadcast.emit('clearCanvas'); });
-  socket.on('syncCanvas', (dataUrl) => { socket.broadcast.emit('syncCanvas', dataUrl); });
-
-  socket.on('requestHint', () => {
-    const p = players[socket.id];
-    if (p && p.isDrawer && turnState === 'drawing') {
-      revealNextLetterHint();
+  socket.on('selectWord', (word) => {
+    if (players[currentDrawerIndex] && players[currentDrawerIndex].id === socket.id) {
+      startDrawingPhase(word);
     }
   });
 
-  socket.on('requestHackWord', () => {
-    if (currentWord) {
-      socket.emit('hackSecretWordSync', currentWord);
-    }
+  socket.on('drawData', (data) => {
+    socket.broadcast.emit('drawData', data);
   });
 
-  // Game Restarter
-  socket.on('restartGame', () => {
-    round = 1;
-    currentDrawerIndex = 0;
-    Object.keys(players).forEach(id => {
-      players[id].score = 0;
-      players[id].isDrawer = false;
-      players[id].hasGuessed = false;
-    });
-    io.emit('systemMessage', 'Game was restarted by host/hack menu!');
-    startTurnSelection();
+  socket.on('canvasData', (dataUri) => {
+    socket.broadcast.emit('canvasData', dataUri);
   });
 
-  // Game Crasher
-  socket.on('crashTargetPlayer', (targetId) => {
-    if (players[targetId]) {
-      io.to(targetId).emit('crashClient');
-      io.sockets.sockets.get(targetId)?.disconnect(true);
-      io.emit('systemMessage', players[targetId].name + ' was crashed out!');
-    }
+  socket.on('canvasClear', () => {
+    socket.broadcast.emit('canvasClear');
   });
 
-  socket.on('chatMessage', (msg) => {
-    const p = players[socket.id];
-    if (!p) return;
+  socket.on('chatMessage', (text) => {
+    const player = players.find(p => p.id === socket.id);
+    if (!player) return;
 
-    const cleanMsg = msg.toLowerCase().trim();
-    const cleanWord = currentWord.toLowerCase().trim();
+    const isDrawer = players[currentDrawerIndex] && players[currentDrawerIndex].id === socket.id;
 
-    if (gameInProgress && turnState === 'drawing' && !p.isDrawer && !p.hasGuessed) {
-      if (cleanMsg === cleanWord) {
-        p.hasGuessed = true;
-        p.score += Math.max(100, timeLeft * 10);
-        io.emit('chatMessage', { name: p.name, msg: 'guessed the word!', status: 'correct' });
-        io.emit('gameUpdate', { round, totalRounds, wordHint: getWordHint(), players: getPlayerList() });
-
-        const nonDrawers = Object.values(players).filter(pl => !pl.isDrawer);
-        if (nonDrawers.length > 0 && nonDrawers.every(pl => pl.hasGuessed)) {
-          endTurn('Everyone guessed the word! It was: ' + currentWord);
-        }
-        return;
-      }
-
-      const dist = getLevenshteinDistance(cleanMsg, cleanWord);
-      if (dist <= 2 && cleanMsg.length >= 3) {
-        socket.emit('chatMessage', { name: 'System', msg: `'${msg}' is proper close!`, status: 'close' });
-        socket.broadcast.emit('chatMessage', { name: p.name, msg, status: 'wrong' });
-        return;
-      }
+    if (gameState === 'drawing' && !isDrawer && text.trim().toLowerCase() === currentWord) {
+      io.emit('chatMessage', { type: 'correct', text: `${player.name} guessed the word correctly!` });
+      player.score += 10;
+      broadcastPlayers();
+      clearInterval(timerInterval);
+      setTimeout(nextTurn, 2500);
+    } else {
+      io.emit('chatMessage', { name: player.name, text });
     }
-
-    io.emit('chatMessage', { name: p.name, msg, status: p.hasGuessed ? 'guessed' : 'wrong' });
   });
 
   socket.on('disconnect', () => {
-    const wasDrawer = players[socket.id]?.isDrawer;
-    delete players[socket.id];
-    
-    io.emit('gameUpdate', { round, totalRounds, wordHint: getWordHint(), players: getPlayerList() });
-    
-    if (Object.keys(players).length === 0) {
-      gameInProgress = false;
-      if (turnTimer) clearInterval(turnTimer);
-      if (hintTimer) clearInterval(hintTimer);
-    } else if (wasDrawer && gameInProgress) {
-      endTurn('The drawer disconnected!');
+    const index = players.findIndex(p => p.id === socket.id);
+    if (index !== -1) {
+      const removed = players.splice(index, 1)[0];
+      io.emit('chatMessage', { type: 'system', text: `${removed.name} left the game.` });
+      broadcastPlayers();
+
+      if (players.length < 2) {
+        clearInterval(timerInterval);
+        gameState = 'waiting';
+        io.emit('chatMessage', { type: 'system', text: 'Not enough players. Waiting for players...' });
+      } else if (index === currentDrawerIndex) {
+        nextTurn();
+      }
     }
   });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log('Server running on port ' + PORT));
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
