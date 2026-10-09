@@ -3,137 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title id="tab-title">Basic Calculator</title>
-  <link id="favicon" rel="icon" href="https://www.google.com/favicon.ico">
+  <title id="tab-title">doverdraw</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; user-select: none; touch-action: manipulation; }
     body { background: #1852b4; color: #000; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 
-    /* --- STEALTH CALCULATOR MASK STYLES --- */
-    #calculator-mask {
-      position: fixed;
-      inset: 0;
-      background: #ffffff;
-      z-index: 999999;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: #333;
-      font-family: Arial, sans-serif;
-    }
-    .calc-header { font-size: 20px; font-style: italic; font-weight: bold; margin-bottom: 12px; color: #333; }
-    .calc-card {
-      background: #eeeeee;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      padding: 12px;
-      width: 320px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .calc-screen {
-      width: 100%;
-      height: 42px;
-      background: #fff;
-      border: 1px solid #bbb;
-      border-radius: 3px;
-      font-size: 22px;
-      text-align: right;
-      padding: 6px 10px;
-      outline: none;
-      font-family: monospace;
-    }
-    .calc-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-    }
-    .calc-btn {
-      height: 40px;
-      background: #e0e0e0;
-      border: 1px solid #b5b5b5;
-      border-radius: 3px;
-      font-size: 15px;
-      font-weight: bold;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .calc-btn:active { background: #ccc; }
-    .calc-btn.op { background: #ffc107; color: #000; border-color: #ffa000; }
-    .calc-footer { margin-top: 8px; text-align: center; font-size: 11px; color: #777; }
-    .calc-footer span { color: #d32f2f; font-weight: bold; }
-
-    #bug-report-btn {
-      position: fixed;
-      bottom: 12px;
-      right: 12px;
-      background: #f5f5f5;
-      border: 1px solid #ccc;
-      color: #666;
-      font-size: 11px;
-      padding: 4px 8px;
-      border-radius: 3px;
-      cursor: pointer;
-      z-index: 1000000;
-    }
-    #bug-report-btn:hover { background: #e0e0e0; color: #333; }
-
-    /* Custom In-Page Bug Report Modal */
-    #bug-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      z-index: 1000001;
-      align-items: center;
-      justify-content: center;
-    }
-    .bug-card {
-      background: #fff;
-      padding: 16px;
-      border-radius: 6px;
-      width: 280px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    .bug-card label { font-size: 12px; font-weight: bold; color: #333; }
-    .bug-card input { padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; outline: none; font-size: 13px; }
-    .bug-card-btns { display: flex; justify-content: flex-end; gap: 6px; }
-    .bug-card-btns button { padding: 6px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; }
-    .btn-submit-bug { background: #1852b4; color: #fff; }
-    .btn-cancel-bug { background: #eee; color: #333; }
-
-    /* --- GAME STYLES --- */
     #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; background: #1852b4; padding: 10px; }
-    .logo-container { font-size: clamp(36px, 8vw, 56px); font-weight: 900; color: #fff; font-family: 'Comic Sans MS', cursive, sans-serif; text-shadow: 3px 3px 0px #000; margin-bottom: 20px; text-align: center; }
+    .logo-container { font-size: clamp(36px, 8vw, 56px); font-weight: 900; color: #fff; font-family: 'Comic Sans MS', cursive, sans-serif; text-shadow: 3px 3px 0px #000; margin-bottom: 15px; text-align: center; }
     
-    .login-card { background: #0c2b64; padding: 20px; border-radius: 8px; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 8px 0 rgba(0,0,0,0.3); }
+    .login-card { background: #0c2b64; padding: 18px; border-radius: 8px; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 8px 0 rgba(0,0,0,0.3); }
     .input-row { display: flex; gap: 8px; }
     input[type="text"] { flex: 1; padding: 10px 14px; border-radius: 4px; border: none; font-size: 16px; font-weight: bold; outline: none; }
 
-    .avatar-picker { background: #09204c; border-radius: 6px; padding: 15px; display: flex; align-items: center; justify-content: center; position: relative; height: 130px; }
-    .avatar-preview { width: 100px; height: 100px; }
+    .avatar-picker { background: #09204c; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+    .avatar-preview-box { width: 80px; height: 80px; background: #fff; border-radius: 50%; border: 3px solid #000; overflow: hidden; display: flex; align-items: center; justify-content: center; }
     
-    .arrow-controls { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 10px; pointer-events: none; }
-    .arrow-row { display: flex; justify-content: space-between; pointer-events: auto; }
-    .arrow-btn { background: #fff; border: 2px solid #000; border-radius: 4px; font-weight: bold; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; }
-    .arrow-btn:hover { background: #ddd; }
+    .customizer-controls { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+    .customizer-row { display: flex; justify-content: space-between; align-items: center; background: #0e2858; padding: 6px 10px; border-radius: 4px; color: #fff; font-size: 12px; font-weight: bold; }
+    .customizer-row button { background: #fff; border: 1px solid #000; border-radius: 3px; font-weight: bold; width: 26px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #000; }
+    .customizer-row button:hover { background: #ddd; }
+    .customizer-row input[type="color"] { -webkit-appearance: none; border: 1px solid #000; width: 28px; height: 24px; border-radius: 3px; cursor: pointer; padding: 0; background: none; }
+    .customizer-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    .customizer-row input[type="color"]::-webkit-color-swatch { border: none; border-radius: 2px; }
 
-    .btn-play { background: #53d400; color: #fff; border: none; padding: 14px; font-size: 26px; font-weight: 900; border-radius: 6px; cursor: pointer; text-shadow: 2px 2px 0px #000; box-shadow: 0 4px 0 #3a9600; text-align: center; }
+    .btn-play { background: #53d400; color: #fff; border: none; padding: 12px; font-size: 24px; font-weight: 900; border-radius: 6px; cursor: pointer; text-shadow: 2px 2px 0px #000; box-shadow: 0 4px 0 #3a9600; text-align: center; margin-top: 4px; }
     .btn-play:hover { background: #47b800; }
 
     #game-screen { display: none; width: 100%; max-width: 1000px; height: 100vh; max-height: 620px; background: #fff; border-radius: 6px; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden; border: 3px solid #0c2b64; }
     
     header { background: #fff; height: 48px; padding: 0 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ccc; font-size: 14px; font-weight: bold; flex-shrink: 0; }
     .timer-box { font-size: 20px; font-weight: 900; display: flex; align-items: center; gap: 4px; }
-    .word-box { font-size: clamp(16px, 4vw, 24px); font-weight: 900; letter-spacing: 3px; text-align: center; overflow: hidden; white-space: nowrap; }
+    .word-box { font-size: clamp(16px, 4vw, 24px); font-weight: 900; letter-spacing: 3px; text-align: center; overflow: hidden; white-space: nowrap; filter: blur(6px); transition: filter 0.2s ease; }
 
     .game-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
     
@@ -155,101 +55,29 @@
     .word-opt-btn { background: #fff; border: 2px solid #000; color: #000; padding: 10px 16px; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; }
     .word-opt-btn:hover { background: #eee; }
 
-    .toolbar { background: #1852b4; min-height: 54px; padding: 4px 8px; display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #0c2b64; flex-shrink: 0; gap: 6px; overflow: hidden; }
-    .palette { display: flex; gap: 3px; align-items: center; flex-wrap: wrap; max-width: 65%; max-height: 46px; overflow: hidden; }
+    .toolbar { background: #0f2c59; min-height: 54px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #051937; flex-shrink: 0; gap: 12px; }
+    .palette { display: flex; gap: 3px; align-items: center; flex-wrap: wrap; max-width: 42%; max-height: 46px; overflow: hidden; }
     .color-swatch { width: 18px; height: 18px; border: 1px solid #000; cursor: pointer; border-radius: 2px; flex-shrink: 0; }
     .color-swatch.active { outline: 2px solid #fff; z-index: 2; }
     
-    input[type="color"] { -webkit-appearance: none; border: 1px solid #000; width: 22px; height: 22px; border-radius: 3px; cursor: pointer; padding: 0; background: none; flex-shrink: 0; }
-    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
-    input[type="color"]::-webkit-color-swatch { border: none; border-radius: 2px; }
-
-    .tool-group { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+    .tool-group { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
     .tool-btn { width: 30px; height: 30px; background: #fff; border: 2px solid #000; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; display: flex; align-items: center; justify-content: center; }
     .tool-btn.active { background: #ddd; }
 
     .sidebar-right { width: 220px; background: #fff; border-left: 2px solid #ccc; display: flex; flex-direction: column; flex-shrink: 0; }
     .chat-messages { flex: 1; padding: 8px; overflow-y: auto; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+    .chat-input-box { padding: 6px; background: #eee; border-top: 1px solid #ccc; }
+    .chat-input-box input { width: 100%; padding: 6px 8px; border: 1px solid #bbb; border-radius: 4px; outline: none; font-size: 12px; }
     
-    .chat-msg { word-break: break-word; color: #333; padding: 3px 5px; border-radius: 3px; transition: transform 0.2s; }
+    .chat-msg { word-break: break-word; color: #333; padding: 3px 5px; border-radius: 3px; }
     .chat-msg b { color: #000; }
     .chat-msg.system { color: #1852b4; font-weight: bold; background: #eef4ff; }
     .chat-msg.correct { color: #2e7d32; font-weight: bold; background: #e8f5e9; }
     .chat-msg.close { color: #d84315; font-weight: bold; background: #fbe9e7; }
-    .chat-msg.wrong { animation: shakeRed 0.25s ease-in-out; }
-
-    #hack-menu { display: none; position: fixed; top: 20px; right: 20px; width: 250px; background: #111; color: #fff; border: 2px solid #53d400; border-radius: 6px; padding: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.8); z-index: 9999; }
-    #hack-menu h3 { font-size: 13px; color: #53d400; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 4px; }
-    .hack-row { margin-bottom: 8px; font-size: 12px; }
-    .hack-row label { display: block; color: #aaa; margin-bottom: 4px; }
-    .hack-btn { width: 100%; background: #d32f2f; color: #fff; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; margin-top: 4px; }
-    .hack-btn:hover { background: #b71c1c; }
-    .hack-btn.restart { background: #ff9800; color: #000; }
-    .hack-btn.restart:hover { background: #e68a00; }
-    .hack-select { width: 100%; padding: 4px; background: #222; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 12px; }
   </style>
 </head>
 <body>
 
-  <!-- STEALTH CALCULATOR MASK OVERLAY -->
-  <div id="calculator-mask">
-    <div class="calc-header">Basic Calculator</div>
-    <div class="calc-card">
-      <input type="text" class="calc-screen" id="calc-display" value="0" readonly />
-      <div class="calc-grid">
-        <button class="calc-btn" onclick="calcPress('mc')">mc</button>
-        <button class="calc-btn" onclick="calcPress('mr')">mr</button>
-        <button class="calc-btn" onclick="calcPress('m-')">m-</button>
-        <button class="calc-btn" onclick="calcPress('m+')">m+</button>
-
-        <button class="calc-btn" onclick="calcClear()">AC</button>
-        <button class="calc-btn" onclick="calcPress('√')">√x</button>
-        <button class="calc-btn" onclick="calcPress('%')">%</button>
-        <button class="calc-btn op" onclick="calcPress('/')">÷</button>
-
-        <button class="calc-btn" onclick="calcNum('7')">7</button>
-        <button class="calc-btn" onclick="calcNum('8')">8</button>
-        <button class="calc-btn" onclick="calcNum('9')">9</button>
-        <button class="calc-btn op" onclick="calcPress('*')">×</button>
-
-        <button class="calc-btn" onclick="calcNum('4')">4</button>
-        <button class="calc-btn" onclick="calcNum('5')">5</button>
-        <button class="calc-btn" onclick="calcNum('6')">6</button>
-        <button class="calc-btn op" onclick="calcPress('-')">-</button>
-
-        <button class="calc-btn" onclick="calcNum('1')">1</button>
-        <button class="calc-btn" onclick="calcNum('2')">2</button>
-        <button class="calc-btn" onclick="calcNum('3')">3</button>
-        <button class="calc-btn op" onclick="calcPress('+')">+</button>
-
-        <button class="calc-btn" onclick="calcNum('0')">0</button>
-        <button class="calc-btn" onclick="calcPress('.')">.</button>
-        <button class="calc-btn" onclick="calcPress('+/-')">+/-</button>
-        <button class="calc-btn op" onclick="calcPress('=')">=</button>
-
-        <button class="calc-btn" onclick="calcPress('π')">π</button>
-        <button class="calc-btn" onclick="calcPress('x²')">x²</button>
-        <button class="calc-btn" onclick="calcPress('R2')">R2</button>
-        <button class="calc-btn" onclick="calcPress('R0')">R0</button>
-      </div>
-      <div class="calc-footer">© Calculator<span>Soup</span></div>
-    </div>
-    <button id="bug-report-btn" onclick="openBugReportModal()">Report a Bug</button>
-  </div>
-
-  <!-- IN-PAGE BUG REPORT MODAL -->
-  <div id="bug-modal">
-    <div class="bug-card">
-      <label>Describe the Bug / Issue:</label>
-      <input type="text" id="bug-input" placeholder="Type here..." onkeydown="handleBugKey(event)" />
-      <div class="bug-card-btns">
-        <button class="bug-btn btn-cancel-bug" onclick="closeBugReportModal()">Cancel</button>
-        <button class="bug-btn btn-submit-bug" onclick="submitBugReport()">Submit</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MAIN GAME HTML STRUCTURE -->
   <div id="login-screen">
     <div class="logo-container">doverdraw</div>
     <div class="login-card">
@@ -258,19 +86,27 @@
       </div>
 
       <div class="avatar-picker">
-        <div id="avatar-svg-container" class="avatar-preview"></div>
-        <div class="arrow-controls">
-          <div class="arrow-row">
-            <button class="arrow-btn" onclick="cycleAvatar('color', -1)">&lt;</button>
-            <button class="arrow-btn" onclick="cycleAvatar('color', 1)">&gt;</button>
+        <div class="avatar-preview-box" id="avatar-svg-container"></div>
+        <div class="customizer-controls">
+          <div class="customizer-row">
+            <span>Body Color:</span>
+            <input type="color" id="avatar-color-wheel" value="#ffca3a" onchange="setAvatarColor(this.value)">
           </div>
-          <div class="arrow-row">
-            <button class="arrow-btn" onclick="cycleAvatar('eyes', -1)">&lt;</button>
-            <button class="arrow-btn" onclick="cycleAvatar('eyes', 1)">&gt;</button>
+          <div class="customizer-row">
+            <span>Eyes Style:</span>
+            <div style="display:flex; gap:4px; align-items:center;">
+              <button onclick="cycleAvatar('eyes', -1)">&lt;</button>
+              <span id="eyes-label" style="min-width:60px; text-align:center;">Normal</span>
+              <button onclick="cycleAvatar('eyes', 1)">&gt;</button>
+            </div>
           </div>
-          <div class="arrow-row">
-            <button class="arrow-btn" onclick="cycleAvatar('mouth', -1)">&lt;</button>
-            <button class="arrow-btn" onclick="cycleAvatar('mouth', 1)">&gt;</button>
+          <div class="customizer-row">
+            <span>Mouth Style:</span>
+            <div style="display:flex; gap:4px; align-items:center;">
+              <button onclick="cycleAvatar('mouth', -1)">&lt;</button>
+              <span id="mouth-label" style="min-width:60px; text-align:center;">Smile</span>
+              <button onclick="cycleAvatar('mouth', 1)">&gt;</button>
+            </div>
           </div>
         </div>
       </div>
@@ -281,8 +117,11 @@
 
   <div id="game-screen">
     <header>
-      <div class="timer-box">⏰ <span id="timer-display">60</span></div>
-      <div class="word-box" id="word-hint-display">_ _ _ _ _</div>
+      <div class="timer-box">&#8982; <span id="timer-display">60</span></div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="word-box" id="word-hint-display">_ _ _ _ _</div>
+        <button id="toggle-word-btn" onclick="toggleSecretWordVisibility()" title="Toggle Secret Word Visibility" style="background: rgba(0,0,0,0.06); border: 1px solid #bbb; border-radius: 4px; padding: 4px 6px; cursor: pointer; font-size: 14px; opacity: 0.5;">👁️</button>
+      </div>
       <div id="round-display">Round 1 of 3</div>
     </header>
 
@@ -300,18 +139,22 @@
         </div>
 
         <div class="toolbar">
-          <div class="palette">
-            <div id="color-palette" style="display: flex; gap: 2px; flex-wrap: wrap;"></div>
-            <input type="color" id="custom-color-picker" value="#000000" onchange="setCustomColor(this.value)" title="Choose Custom Color">
-          </div>
+          <div class="palette" id="color-palette"></div>
+          <input type="color" id="custom-color-picker" value="#000000" onchange="setCustomColor(this.value)" title="Custom Color">
           
+          <div style="display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.25); padding: 4px 8px; border-radius: 6px;">
+            <label for="brush-size" style="color: #fff; font-size: 11px; font-weight: bold;">Size:</label>
+            <input type="range" id="brush-size" min="1" max="30" value="4" oninput="setBrushSize(this.value)" style="width: 70px; cursor: pointer;">
+            <span id="brush-size-display" style="color: #fff; font-size: 11px; min-width: 14px; text-align: center;">4</span>
+          </div>
+
           <div class="tool-group">
-            <button class="tool-btn active" id="btn-draw" onclick="setTool('draw')" title="Brush">✏️</button>
-            <button class="tool-btn" id="btn-fill" onclick="setTool('fill')" title="Fill Bucket">🪣</button>
-            <button class="tool-btn" id="btn-erase" onclick="setTool('erase')" title="Eraser">🧹</button>
-            <button class="tool-btn" onclick="undoCanvas()" title="Undo">↩️</button>
-            <button class="tool-btn" onclick="clearCanvas()" title="Clear Canvas">🗑</button>
-            <button class="tool-btn" id="btn-hint" onclick="triggerHint()" title="Request Hint" style="display: none;">💡</button>
+            <button class="tool-btn active" id="btn-draw" onclick="setTool('draw')" title="Brush">&#9999;&#65039;</button>
+            <button class="tool-btn" id="btn-fill" onclick="setTool('fill')" title="Fill Bucket">&#129637;</button>
+            <button class="tool-btn" id="btn-erase" onclick="setTool('erase')" title="Eraser">&#9632;</button>
+            <button class="tool-btn" onclick="undoCanvas()" title="Undo">&#8617;&#65039;</button>
+            <button class="tool-btn" onclick="clearCanvas()" title="Clear Canvas">&#128465;</button>
+            <button class="tool-btn" id="btn-hint" onclick="triggerHint()" title="Request Hint" style="display: none;">&#11088;</button>
           </div>
         </div>
       </div>
@@ -325,551 +168,351 @@
     </div>
   </div>
 
-  <div id="hack-menu">
-    <h3>SnithikHack Menu</h3>
-    <div class="hack-row">
-      <label>SECRET WORD:</label>
-      <div id="hack-word-display" style="font-size: 15px; font-weight: bold; color: #53d400;">NONE</div>
-    </div>
-    <div class="hack-row">
-      <label style="cursor:pointer;">
-        <input type="checkbox" id="hack-draw-check" onchange="toggleHackDraw()"> DRAW INTERFERER
-      </label>
-    </div>
-    <div class="hack-row" style="border-top: 1px solid #333; padding-top: 8px;">
-      <button class="hack-btn restart" onclick="restartGame()">RESTART GAME</button>
-    </div>
-    <div class="hack-row" style="border-top: 1px solid #333; padding-top: 8px;">
-      <label>CRASH PLAYER:</label>
-      <select id="hack-crash-select" class="hack-select">
-        <option value="">Select target...</option>
-      </select>
-      <button class="hack-btn" onclick="crashTarget()">CRASH GAME</button>
-    </div>
-  </div>
-
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    // --- TAB-OUT MASKING & CALCULATOR UNLOCK SYSTEM ---
-    var calcVal = "0";
-    var isUnlocked = false;
-    var isModalOpen = false;
+    const socket = io();
 
-    function triggerDisguise() {
-      // Don't re-lock if user is currently interacting inside the bug modal
-      if (isModalOpen) return;
-      document.title = "Basic Calculator";
-      document.getElementById('calculator-mask').style.display = 'flex';
-      isUnlocked = false;
-      calcClear();
-    }
+    let myAvatar = { color: '#ffca3a', eyes: 0, mouth: 0 };
+    const eyeStyles = ['Normal', 'Happy', 'Wink', 'Cool', 'Surprised', 'Star', 'Dizzy', 'Sleepy'];
+    const mouthStyles = ['Smile', 'Grin', 'Straight', 'Sad', 'Tongue'];
 
-    window.addEventListener('blur', triggerDisguise);
+    function renderAvatarSvg(av) {
+      const col = av.color || '#ffca3a';
+      const eyeName = eyeStyles[av.eyes % eyeStyles.length];
+      const mouthName = mouthStyles[av.mouth % mouthStyles.length];
+      
+      let eyeMarkup = `<circle cx="35" cy="40" r="6" fill="#000"/><circle cx="65" cy="40" r="6" fill="#000"/>`;
+      if (eyeName === 'Happy') eyeMarkup = `<path d="M 29 42 Q 35 34 41 42" stroke="#000" stroke-width="4" fill="none"/><path d="M 59 42 Q 65 34 71 42" stroke="#000" stroke-width="4" fill="none"/>`;
+      if (eyeName === 'Wink') eyeMarkup = `<circle cx="35" cy="40" r="6" fill="#000"/><path d="M 59 40 L 71 40" stroke="#000" stroke-width="4"/>`;
+      if (eyeName === 'Cool') eyeMarkup = `<rect x="25" y="34" width="22" height="12" fill="#000" rx="2"/><rect x="53" y="34" width="22" height="12" fill="#000" rx="2"/><line x1="47" y1="38" x2="53" y2="38" stroke="#000" stroke-width="4"/>`;
+      if (eyeName === 'Surprised') eyeMarkup = `<circle cx="35" cy="40" r="8" fill="none" stroke="#000" stroke-width="3"/><circle cx="65" cy="40" r="8" fill="none" stroke="#000" stroke-width="3"/>`;
+      if (eyeName === 'Star') eyeMarkup = `<polygon points="35,31 37,37 43,37 38,41 40,47 35,43 30,47 32,41 27,37 33,37" fill="#000"/><polygon points="65,31 67,37 73,37 68,41 70,47 65,43 60,47 62,41 57,37 63,37" fill="#000"/>`;
+      if (eyeName === 'Dizzy') eyeMarkup = `<path d="M 29 35 L 41 45 M 41 35 L 29 45" stroke="#000" stroke-width="3"/><path d="M 59 35 L 71 45 M 71 35 L 59 45" stroke="#000" stroke-width="3"/>`;
+      if (eyeName === 'Sleepy') eyeMarkup = `<path d="M 29 40 L 41 40" stroke="#000" stroke-width="4"/><path d="M 59 40 L 71 40" stroke="#000" stroke-width="4"/>`;
 
-    document.addEventListener('visibilitychange', function() {
-      if (document.hidden) {
-        triggerDisguise();
-      }
-    });
+      let mouthMarkup = `<path d="M 35 65 Q 50 78 65 65" stroke="#000" stroke-width="4" fill="none"/>`;
+      if (mouthName === 'Grin') mouthMarkup = `<path d="M 33 62 Q 50 82 67 62 Z" fill="#000"/>`;
+      if (mouthName === 'Straight') mouthMarkup = `<line x1="35" y1="66" x2="65" y2="66" stroke="#000" stroke-width="4"/>`;
+      if (mouthName === 'Sad') mouthMarkup = `<path d="M 35 72 Q 50 58 65 72" stroke="#000" stroke-width="4" fill="none"/>`;
+      if (mouthName === 'Tongue') mouthMarkup = `<path d="M 35 64 Q 50 74 65 64 Z" fill="#000"/><path d="M 45 69 Q 50 84 55 69 Z" fill="#ff5959"/>`;
 
-    function calcNum(num) {
-      if (calcVal === "0") calcVal = num;
-      else calcVal += num;
-      document.getElementById('calc-display').value = calcVal;
-    }
-
-    function calcPress(op) {
-      if (op === '=') {
-        try { calcVal = String(eval(calcVal.replace(/×/g, '*').replace(/÷/g, '/'))); }
-        catch(e) { calcVal = "Error"; }
-      } else {
-        calcVal += " " + op + " ";
-      }
-      document.getElementById('calc-display').value = calcVal;
-    }
-
-    function calcClear() {
-      calcVal = "0";
-      document.getElementById('calc-display').value = "0";
-    }
-
-    function openBugReportModal() {
-      isModalOpen = true;
-      document.getElementById('bug-modal').style.display = 'flex';
-      document.getElementById('bug-input').value = '';
-      document.getElementById('bug-input').focus();
-    }
-
-    function closeBugReportModal() {
-      document.getElementById('bug-modal').style.display = 'none';
-      isModalOpen = false;
-      calcClear();
-    }
-
-    function handleBugKey(e) {
-      if (e.key === 'Enter') {
-        submitBugReport();
-      }
-    }
-
-    function submitBugReport() {
-      var val = document.getElementById('bug-input').value.trim();
-      var cleanVal = val.toLowerCase().replace(/\s+/g, '');
-
-      if (calcVal.trim() === "6767" && cleanVal === "serityvex") {
-        isUnlocked = true;
-        document.getElementById('calculator-mask').style.display = 'none';
-        closeBugReportModal();
-        document.title = "doverdraw";
-        return;
-      }
-
-      alert("Thank you for submitting a bug report.");
-      closeBugReportModal();
-    }
-
-    // Standard Game Setup
-    var socket = io();
-    var myAvatar = { colorIdx: 0, eyesIdx: 0, mouthIdx: 0 };
-    var isDrawer = false;
-    var hackUnlocked = false;
-    var hackDrawEnabled = false;
-    var currentTool = 'draw';
-    var currentColor = '#000000';
-    var drawHistory = [];
-    var currentPlayersList = [];
-
-    var AVATAR_COLORS = ['#ff3b30', '#ff9500', '#ffcc00', '#4cd964', '#5ac8fa', '#007aff', '#5856d6', '#ff2d55'];
-    var PALETTE_COLORS = [
-      '#ffffff', '#c1c1c1', '#ef130b', '#ff7100', '#ffe400', '#00cc00', '#00b2ff', '#231fd3', '#a300ba', '#d37caa', '#a0522d', '#000000',
-      '#505050', '#808080', '#740b07', '#c23800', '#e8a200', '#005500', '#00569e', '#0e0865', '#550069', '#a75574', '#63300d'
-    ];
-
-    function getAvatarSVG(avatar) {
-      var col = AVATAR_COLORS[avatar.colorIdx % AVATAR_COLORS.length];
-      var eyesSVG = '<circle cx="38" cy="42" r="4" fill="#000"/><circle cx="62" cy="42" r="4" fill="#000"/>';
-      if (avatar.eyesIdx % 3 === 1) {
-        eyesSVG = '<rect x="28" y="36" width="18" height="12" fill="none" stroke="#000" stroke-width="2"/><rect x="54" y="36" width="18" height="12" fill="none" stroke="#000" stroke-width="2"/><line x1="46" y1="42" x2="54" y2="42" stroke="#000" stroke-width="2"/>';
-      } else if (avatar.eyesIdx % 3 === 2) {
-        eyesSVG = '<line x1="30" y1="36" x2="44" y2="44" stroke="#000" stroke-width="3"/><line x1="70" y1="36" x2="56" y2="44" stroke="#000" stroke-width="3"/><circle cx="38" cy="45" r="3" fill="#000"/><circle cx="62" cy="45" r="3" fill="#000"/>';
-      }
-
-      var mouthSVG = '<path d="M 36 62 Q 50 74 64 62" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"/>';
-      if (avatar.mouthIdx % 3 === 1) {
-        mouthSVG = '<path d="M 36 68 Q 50 56 64 68" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"/>';
-      } else if (avatar.mouthIdx % 3 === 2) {
-        mouthSVG = '<circle cx="50" cy="64" r="7" fill="#000"/>';
-      }
-
-      return '<svg viewBox="0 0 100 100" width="100%" height="100%">' +
-        '<circle cx="50" cy="50" r="40" fill="' + col + '" stroke="#000" stroke-width="4"/>' +
-        eyesSVG + mouthSVG +
-      '</svg>';
+      return `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="50" cy="50" r="45" fill="${col}" stroke="#000" stroke-width="5"/>${eyeMarkup}${mouthMarkup}</svg>`;
     }
 
     function updateAvatarPreview() {
-      document.getElementById('avatar-svg-container').innerHTML = getAvatarSVG(myAvatar);
+      document.getElementById('avatar-svg-container').innerHTML = renderAvatarSvg(myAvatar);
+      document.getElementById('eyes-label').innerText = eyeStyles[myAvatar.eyes % eyeStyles.length];
+      document.getElementById('mouth-label').innerText = mouthStyles[myAvatar.mouth % mouthStyles.length];
     }
+    updateAvatarPreview();
 
-    function cycleAvatar(type, dir) {
-      if (type === 'color') myAvatar.colorIdx = (myAvatar.colorIdx + dir + AVATAR_COLORS.length) % AVATAR_COLORS.length;
-      if (type === 'eyes') myAvatar.eyesIdx = (myAvatar.eyesIdx + dir + 3) % 3;
-      if (type === 'mouth') myAvatar.mouthIdx = (myAvatar.mouthIdx + dir + 3) % 3;
+    function setAvatarColor(hex) {
+      myAvatar.color = hex;
       updateAvatarPreview();
     }
 
-    updateAvatarPreview();
+    function cycleAvatar(part, dir) {
+      if (part === 'eyes') myAvatar.eyes = (myAvatar.eyes + dir + eyeStyles.length) % eyeStyles.length;
+      if (part === 'mouth') myAvatar.mouth = (myAvatar.mouth + dir + mouthStyles.length) % mouthStyles.length;
+      updateAvatarPreview();
+    }
 
-    var paletteContainer = document.getElementById('color-palette');
-    PALETTE_COLORS.forEach(function(col) {
-      var sw = document.createElement('div');
-      sw.className = 'color-swatch' + (col === '#000000' ? ' active' : '');
-      sw.style.background = col;
-      sw.onclick = function() {
-        document.querySelectorAll('.color-swatch').forEach(function(s) { s.classList.remove('active'); });
-        sw.classList.add('active');
-        currentColor = col;
-        document.getElementById('custom-color-picker').value = col;
-        if (currentTool === 'erase') setTool('draw');
-      };
-      paletteContainer.appendChild(sw);
-    });
+    function joinGame() {
+      const name = document.getElementById('username').value.trim();
+      if (!name) { alert('Please enter your name!'); return; }
+      socket.emit('joinGame', { name, avatar: myAvatar });
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('game-screen').style.display = 'flex';
+      initCanvas();
+    }
+
+    let wordVisible = false;
+    function toggleSecretWordVisibility() {
+      wordVisible = !wordVisible;
+      const display = document.getElementById('word-hint-display');
+      const btn = document.getElementById('toggle-word-btn');
+      if (display) display.style.filter = wordVisible ? 'none' : 'blur(6px)';
+      if (btn) btn.style.opacity = wordVisible ? '1' : '0.5';
+    }
+
+    let currentLineWidth = 4;
+    function setBrushSize(val) {
+      currentLineWidth = parseInt(val, 10);
+      const display = document.getElementById('brush-size-display');
+      if (display) display.innerText = currentLineWidth;
+      if (ctx) ctx.lineWidth = currentLineWidth;
+    }
+
+    const canvas = document.getElementById('drawing-canvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+    let currentTool = 'draw';
+    let currentColor = '#000000';
+    let undoStack = [];
+
+    const colors = [
+      '#ffffff','#c2c2c2','#ff2600','#ff8000','#ffe600','#00f800','#00c5ff','#0048ff','#b300ff','#ff00aa',
+      '#743a00','#000000','#555555','#aaaaaa','#801300','#b35900','#b3a100','#00ab00','#008ab3','#0032b3'
+    ];
+
+    function initPalette() {
+      const palette = document.getElementById('color-palette');
+      colors.forEach(col => {
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch' + (col === currentColor ? ' active' : '');
+        swatch.style.backgroundColor = col;
+        swatch.onclick = () => {
+          document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+          swatch.classList.add('active');
+          currentColor = col;
+          if (currentTool === 'erase') setTool('draw');
+        };
+        palette.appendChild(swatch);
+      });
+    }
+    initPalette();
 
     function setCustomColor(col) {
-      document.querySelectorAll('.color-swatch').forEach(function(s) { s.classList.remove('active'); });
       currentColor = col;
+      document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
       if (currentTool === 'erase') setTool('draw');
     }
 
     function setTool(tool) {
       currentTool = tool;
-      document.getElementById('btn-draw').classList.toggle('active', tool === 'draw');
-      document.getElementById('btn-fill').classList.toggle('active', tool === 'fill');
-      document.getElementById('btn-erase').classList.toggle('active', tool === 'erase');
+      document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+      if (tool === 'draw') document.getElementById('btn-draw').classList.add('active');
+      if (tool === 'erase') document.getElementById('btn-erase').classList.add('active');
+      if (tool === 'fill') document.getElementById('btn-fill').classList.add('active');
     }
 
-    function triggerHint() {
-      if (!isDrawer) return;
-      socket.emit('requestHint');
+    function initCanvas() {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      saveState();
     }
-
-    function joinGame() {
-      var name = document.getElementById('username').value.trim() || 'Player';
-      socket.emit('joinGame', { name: name, avatar: myAvatar });
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('game-screen').style.display = 'flex';
-    }
-
-    var canvas = document.getElementById('drawing-canvas');
-    var ctx = canvas.getContext('2d');
-    var drawing = false;
-    var lastX = 0, lastY = 0;
 
     function saveState() {
-      if (drawHistory.length > 20) drawHistory.shift();
-      drawHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+      if (undoStack.length > 20) undoStack.shift();
+      undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
     }
 
     function undoCanvas() {
-      if (!isDrawer && !hackDrawEnabled) return;
-      if (drawHistory.length > 0) {
-        ctx.putImageData(drawHistory.pop(), 0, 0);
-        socket.emit('syncCanvas', canvas.toDataURL());
+      if (undoStack.length > 1) {
+        undoStack.pop();
+        ctx.putImageData(undoStack[undoStack.length - 1], 0, 0);
+        socket.emit('canvasData', canvas.toDataURL());
       }
     }
 
     function clearCanvas() {
-      if (!isDrawer && !hackDrawEnabled) return;
-      saveState();
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      socket.emit('clearCanvas');
+      saveState();
+      socket.emit('canvasClear');
     }
 
-    function getCanvasPos(e) {
-      var rect = canvas.getBoundingClientRect();
-      var clientX = e.clientX || (e.touches && e.touches[0].clientX);
-      var clientY = e.clientY || (e.touches && e.touches[0].clientY);
-      var scaleX = canvas.width / rect.width;
-      var scaleY = canvas.height / rect.height;
+    let lastX = 0, lastY = 0;
+    function getCoords(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       return {
-        x: Math.floor((clientX - rect.left) * scaleX),
-        y: Math.floor((clientY - rect.top) * scaleY)
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height)
       };
     }
 
-    function floodFill(startX, startY, hexColor) {
-      var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      var data = imgData.data;
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDraw);
+    canvas.addEventListener('mouseleave', stopDraw);
 
-      var targetR = parseInt(hexColor.slice(1,3), 16);
-      var targetG = parseInt(hexColor.slice(3,5), 16);
-      var targetB = parseInt(hexColor.slice(5,7), 16);
+    canvas.addEventListener('touchstart', (e) => { startDraw(e); e.preventDefault(); });
+    canvas.addEventListener('touchmove', (e) => { draw(e); e.preventDefault(); });
+    canvas.addEventListener('touchend', stopDraw);
 
-      var startPos = (startY * canvas.width + startX) * 4;
-      var startR = data[startPos];
-      var startG = data[startPos + 1];
-      var startB = data[startPos + 2];
-      var startA = data[startPos + 3];
+    function startDraw(e) {
+      const coords = getCoords(e);
+      lastX = coords.x;
+      lastY = coords.y;
 
-      if (Math.abs(startR - targetR) < 10 && Math.abs(startG - targetG) < 10 && Math.abs(startB - targetB) < 10) return;
-
-      function colorMatch(pos) {
-        var r = data[pos];
-        var g = data[pos + 1];
-        var b = data[pos + 2];
-        var a = data[pos + 3];
-        return Math.abs(r - startR) < 30 && Math.abs(g - startG) < 30 && Math.abs(b - startB) < 30 && Math.abs(a - startA) < 30;
+      if (currentTool === 'fill') {
+        floodFill(Math.floor(lastX), Math.floor(lastY), currentColor);
+        socket.emit('canvasData', canvas.toDataURL());
+        saveState();
+        return;
       }
+      drawing = true;
+    }
 
-      function colorPixel(pos) {
-        data[pos] = targetR;
-        data[pos+1] = targetG;
-        data[pos+2] = targetB;
-        data[pos+3] = 255;
+    function draw(e) {
+      if (!drawing || currentTool === 'fill') return;
+      const coords = getCoords(e);
+
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(coords.x, coords.y);
+      ctx.strokeStyle = currentTool === 'erase' ? '#ffffff' : currentColor;
+      ctx.lineWidth = currentTool === 'erase' ? currentLineWidth * 3 : currentLineWidth;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+
+      lastX = coords.x;
+      lastY = coords.y;
+
+      socket.emit('drawData', {
+        x0: lastX, y0: lastY, x1: coords.x, y1: coords.y,
+        color: currentTool === 'erase' ? '#ffffff' : currentColor,
+        width: currentTool === 'erase' ? currentLineWidth * 3 : currentLineWidth
+      });
+    }
+
+    function stopDraw() {
+      if (drawing) {
+        drawing = false;
+        saveState();
+        socket.emit('canvasData', canvas.toDataURL());
       }
+    }
 
-      var stack = [[startX, startY]];
+    function floodFill(startX, startY, fillColor) {
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+      const targetIdx = (startY * canvas.width + startX) * 4;
+      
+      const tr = data[targetIdx], tg = data[targetIdx+1], tb = data[targetIdx+2], ta = data[targetIdx+3];
+      
+      const hex = fillColor.replace('#','');
+      const fr = parseInt(hex.substring(0,2),16);
+      const fg = parseInt(hex.substring(2,4),16);
+      const fb = parseInt(hex.substring(4,6),16);
 
-      while (stack.length > 0) {
-        var pop = stack.pop();
-        var x = pop[0];
-        var y = pop[1];
+      if (tr === fr && tg === fg && tb === fb) return;
 
-        var pos = (y * canvas.width + x) * 4;
-        while (y >= 0 && colorMatch(pos)) {
-          y--;
-          pos -= canvas.width * 4;
+      const queue = [[startX, startY]];
+      const visited = new Uint8Array(canvas.width * canvas.height);
+
+      while(queue.length > 0) {
+        const [x, y] = queue.pop();
+        if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) continue;
+        const idx = y * canvas.width + x;
+        if (visited[idx]) continue;
+        visited[idx] = 1;
+
+        const pixIdx = idx * 4;
+        if (data[pixIdx] === tr && data[pixIdx+1] === tg && data[pixIdx+2] === tb && data[pixIdx+3] === ta) {
+          data[pixIdx] = fr;
+          data[pixIdx+1] = fg;
+          data[pixIdx+2] = fb;
+          data[pixIdx+3] = 255;
+          queue.push([x+1, y], [x-1, y], [x, y+1], [x, y-1]);
         }
-        pos += canvas.width * 4;
-        y++;
-
-        var reachLeft = false;
-        var reachRight = false;
-
-        while (y < canvas.height && colorMatch(pos)) {
-          colorPixel(pos);
-
-          if (x > 0) {
-            if (colorMatch(pos - 4)) {
-              if (!reachLeft) {
-                stack.push([x - 1, y]);
-                reachLeft = true;
-              }
-            } else if (reachLeft) {
-              reachLeft = false;
-            }
-          }
-
-          if (x < canvas.width - 1) {
-            if (colorMatch(pos + 4)) {
-              if (!reachRight) {
-                stack.push([x + 1, y]);
-                reachRight = true;
-              }
-            } else if (reachRight) {
-              reachRight = false;
-            }
-          }
-
-          y++;
-          pos += canvas.width * 4;
-        }
       }
-
       ctx.putImageData(imgData, 0, 0);
     }
 
-    function startDrawing(e) {
-      if (!isDrawer && !hackDrawEnabled) return;
-      var pos = getCanvasPos(e);
-
-      if (currentTool === 'fill') {
-        saveState();
-        floodFill(pos.x, pos.y, currentColor);
-        socket.emit('syncCanvas', canvas.toDataURL());
-        return;
-      }
-
-      saveState();
-      drawing = true;
-      lastX = pos.x;
-      lastY = pos.y;
-    }
-
-    function drawMove(e) {
-      if (!drawing || (!isDrawer && !hackDrawEnabled)) return;
-      e.preventDefault();
-      var pos = getCanvasPos(e);
-
-      var drawColor = (currentTool === 'erase') ? '#ffffff' : currentColor;
-      var drawSize = (currentTool === 'erase') ? 20 : 4;
-
+    socket.on('drawData', (data) => {
       ctx.beginPath();
-      ctx.strokeStyle = drawColor;
-      ctx.lineWidth = drawSize;
+      ctx.moveTo(data.x0, data.y0);
+      ctx.lineTo(data.x1, data.y1);
+      ctx.strokeStyle = data.color;
+      ctx.lineWidth = data.width;
       ctx.lineCap = 'round';
-      ctx.moveTo(lastX, lastY);
-      ctx.lineTo(pos.x, pos.y);
-      ctx.stroke();
-
-      socket.emit('drawStep', { x1: lastX, y1: lastY, x2: pos.x, y2: pos.y, color: drawColor, size: drawSize });
-      lastX = pos.x;
-      lastY = pos.y;
-    }
-
-    function stopDrawing() { drawing = false; }
-
-    canvas.addEventListener('mousedown', startDrawing);
-    canvas.addEventListener('mousemove', drawMove);
-    window.addEventListener('mouseup', stopDrawing);
-
-    canvas.addEventListener('touchstart', function(e) { startDrawing(e); }, { passive: false });
-    canvas.addEventListener('touchmove', function(e) { drawMove(e); }, { passive: false });
-    window.addEventListener('touchend', stopDrawing);
-
-    socket.on('drawStep', function(d) {
-      ctx.beginPath();
-      ctx.strokeStyle = d.color;
-      ctx.lineWidth = d.size;
-      ctx.lineCap = 'round';
-      ctx.moveTo(d.x1, d.y1);
-      ctx.lineTo(d.x2, d.y2);
+      ctx.lineJoin = 'round';
       ctx.stroke();
     });
 
-    socket.on('clearCanvas', function() {
+    socket.on('canvasData', (dataUri) => {
+      const img = new Image();
+      img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        saveState();
+      };
+      img.src = dataUri;
+    });
+
+    socket.on('canvasClear', () => {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      saveState();
     });
 
-    socket.on('syncCanvas', function(dataUrl) {
-      var img = new Image();
-      img.onload = function() { ctx.drawImage(img, 0, 0); };
-      img.src = dataUrl;
+    socket.on('updateTimer', (timeLeft) => {
+      document.getElementById('timer-display').innerText = timeLeft;
     });
 
-    socket.on('gameUpdate', function(data) {
-      document.getElementById('round-display').innerText = 'Round ' + data.round + ' of ' + data.totalRounds;
-      document.getElementById('word-hint-display').innerText = data.wordHint;
-
-      currentPlayersList = data.players;
-      updateCrashDropdown();
-
-      var me = data.players.find(function(p) { return p.id === socket.id; });
-      if (me && me.isDrawer) {
-        isDrawer = true;
-        document.getElementById('btn-hint').style.display = 'flex';
-      } else {
-        isDrawer = false;
-        document.getElementById('btn-hint').style.display = 'none';
-      }
-
-      var pList = document.getElementById('player-list');
-      pList.innerHTML = '';
-      data.players.sort(function(a,b) { return b.score - a.score; }).forEach(function(p, idx) {
-        var card = document.createElement('div');
+    socket.on('updatePlayers', (players) => {
+      const list = document.getElementById('player-list');
+      list.innerHTML = '';
+      players.forEach((p, idx) => {
+        const card = document.createElement('div');
         card.className = 'player-card' + (p.isDrawer ? ' drawer' : '');
-        
-        var avatarBox = document.createElement('div');
-        avatarBox.style.width = '26px';
-        avatarBox.style.height = '26px';
-        avatarBox.innerHTML = getAvatarSVG(p.avatar);
-
-        card.innerHTML = '<div class="player-rank">#' + (idx + 1) + '</div>';
-        card.appendChild(avatarBox);
-        card.innerHTML += '<div class="player-info">' +
-            '<div class="player-name">' + p.name + (p.id === socket.id ? ' (You)' : '') + '</div>' +
-            '<div class="player-score">' + p.score + ' pts</div>' +
-          '</div>';
-        pList.appendChild(card);
+        card.innerHTML = `
+          <div class="player-rank">#${idx + 1}</div>
+          <div style="width:28px;height:28px;"><svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="50" cy="50" r="45" fill="${p.avatar.color || '#ffca3a'}" stroke="#000" stroke-width="5"/></svg></div>
+          <div class="player-info">
+            <div class="player-name">${p.name}</div>
+            <div class="player-score">Score: ${p.score}</div>
+          </div>
+        `;
+        list.appendChild(card);
       });
     });
 
-    socket.on('wordHintUpdate', function(data) {
-      document.getElementById('word-hint-display').innerText = data.wordHint;
-    });
-
-    socket.on('timerUpdate', function(data) {
-      document.getElementById('timer-display').innerText = data.timeLeft;
-    });
-
-    socket.on('chooseWordOptions', function(words) {
-      var modal = document.getElementById('word-modal');
-      var container = document.getElementById('word-options-container');
+    socket.on('wordChoice', (options) => {
+      const modal = document.getElementById('word-modal');
+      const container = document.getElementById('word-options-container');
       container.innerHTML = '';
-      modal.style.display = 'flex';
-
-      words.forEach(function(w) {
-        var btn = document.createElement('button');
+      options.forEach(word => {
+        const btn = document.createElement('button');
         btn.className = 'word-opt-btn';
-        btn.innerText = w;
-        btn.onclick = function() {
+        btn.innerText = word;
+        btn.onclick = () => {
+          socket.emit('selectWord', word);
           modal.style.display = 'none';
-          socket.emit('selectWord', w);
         };
         container.appendChild(btn);
       });
+      modal.style.display = 'flex';
     });
 
-    socket.on('yourTurn', function(data) {
-      isDrawer = true;
-      document.getElementById('btn-hint').style.display = 'flex';
-      document.getElementById('word-hint-display').innerText = data.word;
-      document.getElementById('hack-word-display').innerText = data.word;
-    });
-
-    socket.on('hackSecretWordSync', function(secretWord) {
-      document.getElementById('hack-word-display').innerText = secretWord;
-    });
-
-    socket.on('turnEnded', function(data) {
-      isDrawer = false;
-      document.getElementById('btn-hint').style.display = 'none';
+    socket.on('hideWordModal', () => {
       document.getElementById('word-modal').style.display = 'none';
-      document.getElementById('word-hint-display').innerText = data.word;
-      document.getElementById('hack-word-display').innerText = 'NONE';
     });
 
-    socket.on('chatMessage', function(data) {
-      var msgs = document.getElementById('chat-messages');
-      var div = document.createElement('div');
-      div.className = 'chat-msg ' + (data.status || 'wrong');
-      div.innerHTML = '<b>' + data.name + ':</b> ' + data.msg;
-      msgs.appendChild(div);
-      msgs.scrollTop = msgs.scrollHeight;
+    socket.on('setWordHint', (hint) => {
+      document.getElementById('word-hint-display').innerText = hint;
     });
 
-    socket.on('systemMessage', function(msg) {
-      var msgs = document.getElementById('chat-messages');
-      var div = document.createElement('div');
-      div.className = 'chat-msg system';
-      div.innerText = msg;
-      msgs.appendChild(div);
-      msgs.scrollTop = msgs.scrollHeight;
+    socket.on('roundInfo', ({ round, maxRounds }) => {
+      document.getElementById('round-display').innerText = `Round ${round} of ${maxRounds}`;
     });
 
-    socket.on('crashClient', function() {
-      while (true) { window.location.reload(); }
+    socket.on('chatMessage', (msg) => {
+      const box = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'chat-msg ' + (msg.type || '');
+      if (msg.name) {
+        div.innerHTML = `<b>${msg.name}:</b> ${msg.text}`;
+      } else {
+        div.innerText = msg.text;
+      }
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
     });
 
     function handleChatKey(e) {
       if (e.key === 'Enter') {
-        var input = document.getElementById('chat-input');
-        var val = input.value.trim();
-
-        if (val === 'SnithikHack') {
-          input.value = '';
-          hackUnlocked = true;
-          document.getElementById('hack-menu').style.display = 'block';
-          socket.emit('requestHackWord');
-          return;
-        }
-
-        if (val) {
-          socket.emit('chatMessage', val);
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if (text) {
+          socket.emit('chatMessage', text);
           input.value = '';
         }
       }
-    }
-
-    window.addEventListener('keydown', function(e) {
-      if (e.ctrlKey && e.key.toLowerCase() === 'e') {
-        e.preventDefault();
-        if (hackUnlocked) {
-          var menu = document.getElementById('hack-menu');
-          menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-        }
-      }
-    });
-
-    function toggleHackDraw() {
-      hackDrawEnabled = document.getElementById('hack-draw-check').checked;
-    }
-
-    function updateCrashDropdown() {
-      var select = document.getElementById('hack-crash-select');
-      if (!select) return;
-      select.innerHTML = '<option value="">Select target...</option>';
-      currentPlayersList.forEach(function(p) {
-        if (p.id !== socket.id) {
-          var opt = document.createElement('option');
-          opt.value = p.id;
-          opt.innerText = p.name;
-          select.appendChild(opt);
-        }
-      });
-    }
-
-    function crashTarget() {
-      var targetId = document.getElementById('hack-crash-select').value;
-      if (targetId) {
-        socket.emit('crashTargetPlayer', targetId);
-      }
-    }
-
-    function restartGame() {
-      socket.emit('restartGame');
     }
   </script>
 </body>
