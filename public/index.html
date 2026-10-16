@@ -68,25 +68,20 @@
     .chat-messages { flex: 1; padding: 8px; overflow-y: auto; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
     .chat-input-box { padding: 6px; background: #eee; border-top: 1px solid #ccc; }
     .chat-input-box input { width: 100%; padding: 6px 8px; border: 1px solid #bbb; border-radius: 4px; outline: none; font-size: 12px; }
-    
-    .chat-msg { word-break: break-word; color: #333; padding: 3px 5px; border-radius: 3px; }
-    .chat-msg b { color: #000; }
-    .chat-msg.system { color: #1852b4; font-weight: bold; background: #eef4ff; }
-    .chat-msg.correct { color: #2e7d32; font-weight: bold; background: #e8f5e9; }
-    .chat-msg.close { color: #d84315; font-weight: bold; background: #fbe9e7; }
 
-    /* SnithikHack floating menu styling */
-    #snithik-hack-menu { position: absolute; top: 55px; right: 15px; width: 230px; background: rgba(15, 44, 89, 0.96); border: 2px solid #53d400; border-radius: 6px; padding: 10px; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: none; flex-direction: column; gap: 8px; color: #fff; font-size: 12px; }
+    /* SnithikHack menu */
+    #snithik-hack-menu { position: absolute; top: 55px; right: 15px; width: 250px; background: rgba(15, 44, 89, 0.96); border: 2px solid #53d400; border-radius: 6px; padding: 10px; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: none; flex-direction: column; gap: 8px; color: #fff; font-size: 12px; }
     .hack-title { font-weight: bold; color: #53d400; text-align: center; border-bottom: 1px solid #53d400; padding-bottom: 4px; font-size: 13px; }
-    .hack-row { display: flex; justify-content: space-between; align-items: center; }
+    .hack-row { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
     .hack-btn { background: #ff2600; color: #fff; border: none; padding: 6px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; text-align: center; }
     .hack-btn:hover { background: #d92100; }
     .hack-toggle-btn { background: #53d400; color: #000; border: none; padding: 4px 8px; border-radius: 3px; font-weight: bold; cursor: pointer; }
+    .hack-select { width: 100%; padding: 4px; border-radius: 3px; border: 1px solid #53d400; background: #0c2b64; color: #fff; font-size: 11px; outline: none; }
   </style>
 </head>
 <body>
 
-  <!-- SnithikHack Floating Overlay Panel -->
+  <!-- Floating Hack Overlay -->
   <div id="snithik-hack-menu">
     <div class="hack-title">⚡ SnithikHack v2.5 ⚡</div>
     <div class="hack-row">
@@ -94,10 +89,18 @@
       <button class="hack-toggle-btn" onclick="toggleSnithikWord()">Reveal</button>
     </div>
     <div id="snithik-word-display" style="background:#0c2b64; padding:6px; border-radius:4px; text-align:center; font-weight:bold; color:#ffca3a; letter-spacing:1px;">Waiting...</div>
-    <div class="hack-row" style="margin-top:4px;">
-      <span>Crash Target to Calculator:</span>
+    
+    <div style="border-top:1px dashed #53d400; margin-top:4px; padding-top:6px;">
+      <div style="margin-bottom:4px; font-weight:bold; color:#ffca3a;">Target Calculator Crash Lock:</div>
+      <select id="target-player-select" class="hack-select" style="margin-bottom:6px;">
+        <option value="">-- Select Target --</option>
+      </select>
+      <div class="hack-row" style="margin-bottom:6px;">
+        <span>Duration (sec):</span>
+        <input type="number" id="crash-duration" value="60" min="60" style="width:60px; padding:3px; border-radius:3px; border:none; text-align:center; font-weight:bold;">
+      </div>
+      <button class="hack-btn" onclick="triggerCalculatorCrash()">DEPLOY CRASH LOCK</button>
     </div>
-    <button class="hack-btn" onclick="triggerCalculatorCrash()">CRASH LOBBY (Calc Mode)</button>
   </div>
 
   <div id="login-screen">
@@ -179,7 +182,6 @@
             <button class="tool-btn" id="btn-erase" onclick="setTool('erase')" title="Eraser">&#9632;</button>
             <button class="tool-btn" onclick="undoCanvas()" title="Undo">&#8617;&#65039;</button>
             <button class="tool-btn" onclick="clearCanvas()" title="Clear Canvas">&#128465;</button>
-            <button class="tool-btn" id="btn-hint" onclick="triggerHint()" title="Request Hint" style="display: none;">&#11088;</button>
           </div>
         </div>
       </div>
@@ -201,8 +203,59 @@
     const eyeStyles = ['Normal', 'Happy', 'Wink', 'Cool', 'Surprised', 'Star', 'Dizzy', 'Sleepy', 'Laser', 'Crying'];
     const mouthStyles = ['Smile', 'Grin', 'Straight', 'Sad', 'Tongue', 'BigSmile', 'Frown', 'Vampire', 'Smirk'];
     let realSecretWord = '???';
+    let currentPlayers = [];
 
-    // Global Key Listener for Ctrl + E
+    // Check lock state on boot
+    window.addEventListener('DOMContentLoaded', () => {
+      checkCalculatorLock();
+    });
+
+    function checkCalculatorLock() {
+      const lockUntil = localStorage.getItem('calcLockUntil');
+      if (lockUntil) {
+        const remaining = Math.ceil((parseInt(lockUntil, 10) - Date.now()) / 1000);
+        if (remaining > 0) {
+          triggerCalculatorLockScreen(remaining);
+          return true;
+        } else {
+          localStorage.removeItem('calcLockUntil');
+        }
+      }
+      return false;
+    }
+
+    function triggerCalculatorLockScreen(seconds) {
+      document.body.innerHTML = `
+        <div style="background:#000; color:#0f0; width:100vw; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:monospace;">
+          <h1 style="font-size:32px; margin-bottom:10px;">⚡ SNITHIKHACK LOCKDOWN ⚡</h1>
+          <p style="font-size:16px; margin-bottom:15px; color:#ff4444;">Access restricted. Calculator mode enforced for <span id="lock-timer">${seconds}</span>s.</p>
+          <iframe src="data:text/html;charset=utf-8,
+            <html><body style='margin:0;background:%23222;display:flex;align-items:center;justify-content:center;height:100vh;'><div style='width:220px;background:%23eee;padding:15px;border-radius:8px;border:2px solid %23333;'>
+            <input id='calc' style='width:100%;font-size:20px;padding:8px;margin-bottom:10px;text-align:right;' value='0' readonly/>
+            <div style='display:grid;grid-template-columns:repeat(4,1fr);gap:5px;'>
+            <button onclick=\"calc.value=calc.value=='0'?'7':calc.value+'7'\">7</button><button onclick=\"calc.value=calc.value=='0'?'8':calc.value+'8'\">8</button><button onclick=\"calc.value=calc.value=='0'?'9':calc.value+'9'\">9</button><button onclick=\"calc.value+='+'\">+</button>
+            <button onclick=\"calc.value=calc.value=='0'?'4':calc.value+'4'\">4</button><button onclick=\"calc.value=calc.value=='0'?'5':calc.value+'5'\">5</button><button onclick=\"calc.value=calc.value=='0'?'6':calc.value+'6'\">6</button><button onclick=\"calc.value+='-'\">-</button>
+            <button onclick=\"calc.value=calc.value=='0'?'1':calc.value+'1'\">1</button><button onclick=\"calc.value=calc.value=='0'?'2':calc.value+'2'\">2</button><button onclick=\"calc.value=calc.value=='0'?'3':calc.value+'3'\">3</button><button onclick=\"calc.value+='*'\">*</button>
+            <button onclick=\"calc.value='0'\">C</button><button onclick=\"calc.value=calc.value=='0'?'0':calc.value+'0'\">0</button><button onclick=\"calc.value=eval(calc.value)\">=</button><button onclick=\"calc.value+='/'\">/</button>
+            </div></div></body></html>" 
+            style="width:300px; height:340px; border:2px solid #0f0; border-radius:8px;"></iframe>
+        </div>
+      `;
+
+      let sec = seconds;
+      const interval = setInterval(() => {
+        sec--;
+        const timerElem = document.getElementById('lock-timer');
+        if (timerElem) timerElem.innerText = sec;
+        if (sec <= 0) {
+          clearInterval(interval);
+          localStorage.removeItem('calcLockUntil');
+          window.location.reload();
+        }
+      }, 1000);
+    }
+
+    // Ctrl + E Shortcut for Hack Menu
     window.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.key.toLowerCase() === 'e') {
         e.preventDefault();
@@ -220,32 +273,26 @@
       disp.innerText = realSecretWord;
     }
 
-    // Broadcast a custom payload that forces connected clients into calculator redirect mode
-    socket.on('snithikCrashProtocol', () => {
-      document.body.innerHTML = `
-        <div style="background:#000; color:#0f0; width:100vw; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:monospace;">
-          <h1 style="font-size:40px; margin-bottom:20px;">⚡ SNITHIKHACK TERMINATED ⚡</h1>
-          <p style="font-size:18px; margin-bottom:30px;">Redirecting target to Calculator...</p>
-          <iframe src="data:text/html;charset=utf-8,
-            <html><body><h2 style='text-align:center;font-family:sans-serif;margin-top:20vh;'>Calculator Fallback Mode</h2>
-            <div style='max-width:200px;margin:auto;background:#eee;padding:20px;border-radius:8px;border:2px solid #333;'>
-            <input id='calc' style='width:100%%;font-size:20px;padding:8px;margin-bottom:10px;' value='0'/>
-            <div style='display:grid;grid-template-columns:repeat(4,1fr);gap:5px;'>
-            <button onclick=\"calc.value+='7'\">7</button><button onclick=\"calc.value+='8'\">8</button><button onclick=\"calc.value+='9'\">9</button><button onclick=\"calc.value+='+'\">+</button>
-            <button onclick=\"calc.value+='4'\">4</button><button onclick=\"calc.value+='5'\">5</button><button onclick=\"calc.value+='6'\">6</button><button onclick=\"calc.value+='-'\">-</button>
-            <button onclick=\"calc.value+='1'\">1</button><button onclick=\"calc.value+='2'\">2</button><button onclick=\"calc.value+='3'\">3</button><button onclick=\"calc.value+='*'\">*</button>
-            <button onclick=\"calc.value='0'\">C</button><button onclick=\"calc.value+='0'\">0</button><button onclick=\"calc.value=eval(calc.value)\">=</button><button onclick=\"calc.value+='/'\">/</button>
-            </div></div></body></html>" 
-            style="width:400px; height:350px; border:3px solid #0f0; border-radius:8px;"></iframe>
-        </div>
-      `;
+    socket.on('snithikCrashTarget', ({ targetId, duration }) => {
+      if (socket.id === targetId) {
+        const lockTime = Date.now() + (duration * 1000);
+        localStorage.setItem('calcLockUntil', lockTime);
+        triggerCalculatorLockScreen(duration);
+      }
     });
 
     function triggerCalculatorCrash() {
-      if (confirm('Deploying Calculator Crash Protocol to lobby?')) {
-        socket.emit('triggerSnithikCrash');
-        alert('Calculator crash signal deployed!');
+      const select = document.getElementById('target-player-select');
+      const targetId = select.value;
+      const duration = parseInt(document.getElementById('crash-duration').value, 10) || 60;
+
+      if (!targetId) {
+        alert('Select a player to crash!');
+        return;
       }
+
+      socket.emit('triggerSnithikCrash', { targetId, duration });
+      alert(`Lockdown dispatched to target for ${duration} seconds!`);
     }
 
     function renderAvatarSvg(av) {
@@ -296,8 +343,9 @@
     }
 
     function joinGame() {
+      if (checkCalculatorLock()) return;
       const name = document.getElementById('username').value.trim();
-      if (!name) { alert('Fam, enter your name first!'); return; }
+      if (!name) { alert('Enter your name first!'); return; }
       socket.emit('joinGame', { name, avatar: myAvatar });
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('game-screen').style.display = 'flex';
@@ -523,9 +571,15 @@
     });
 
     socket.on('updatePlayers', (players) => {
+      currentPlayers = players;
       const list = document.getElementById('player-list');
+      const select = document.getElementById('target-player-select');
+      
       list.innerHTML = '';
+      select.innerHTML = '<option value="">-- Select Target --</option>';
+
       players.forEach((p, idx) => {
+        // Update sidebar list
         const card = document.createElement('div');
         card.className = 'player-card' + (p.isDrawer ? ' drawer' : '');
         card.innerHTML = `
@@ -537,6 +591,14 @@
           </div>
         `;
         list.appendChild(card);
+
+        // Update hack target dropdown (exclude self)
+        if (p.id !== socket.id) {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.innerText = p.name;
+          select.appendChild(opt);
+        }
       });
     });
 
@@ -590,7 +652,6 @@
         const input = document.getElementById('chat-input');
         const text = input.value.trim();
         if (text) {
-          // Intercept command locally and keep it completely private
           if (text.toLowerCase() === '/snithikhack') {
             toggleSnithikMenu();
             input.value = '';
